@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 7 — Spark I: Basics | CS4225/CS5425</title>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --teal:        #0F6E56;
+  --teal-light:  #E1F5EE;
+  --teal-mid:    #1D9E75;
+  --purple:      #3C3489;
+  --purple-light:#EEEDFE;
+  --amber:       #854F0B;
+  --amber-light: #FAEEDA;
+  --blue:        #0C447C;
+  --blue-light:  #E6F1FB;
+  --coral:       #712B13;
+  --coral-light: #FAECE7;
+  --red-light:   #FCEBEB;
+  --red:         #791F1F;
+  --green-light: #EAF3DE;
+  --green:       #27500A;
+  --gray:        #444441;
+  --gray-light:  #F1EFE8;
+  --border:      #D3D1C7;
+  --text:        #1a1a1a;
+  --text-muted:  #5F5E5A;
+  --font-body:   'DM Sans', sans-serif;
+  --font-mono:   'JetBrains Mono', monospace;
+}
+
+html, body {
+  background: #ffffff;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 11pt;
+  line-height: 1.65;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 16mm 18mm 16mm;
+}
+
+.lecture-header { border-bottom: 2.5px solid var(--teal-mid); padding-bottom: 10px; margin-bottom: 22px; }
+.lecture-title  { font-size: 20pt; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.lecture-sub    { font-size: 9pt; color: var(--text-muted); margin-top: 3px; letter-spacing: 0.3px; }
+
+.section       { margin-bottom: 20px; }
+.section-title { font-size: 12pt; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; margin-bottom: 9px; padding-bottom: 4px; border-bottom: 0.75px solid var(--border); }
+
+.badge { font-size: 8pt; font-weight: 600; padding: 2px 9px; border-radius: 20px; letter-spacing: 0.2px; }
+.bt { background: var(--teal-light);   color: var(--teal); }
+.bp { background: var(--purple-light); color: var(--purple); }
+.ba { background: var(--amber-light);  color: var(--amber); }
+.bb { background: var(--blue-light);   color: var(--blue); }
+.bc { background: var(--coral-light);  color: var(--coral); }
+
+p    { font-size: 10.5pt; color: var(--text); line-height: 1.65; margin-bottom: 7px; }
+code { font-family: var(--font-mono); font-size: 9pt; background: var(--gray-light); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr;         gap: 8px; margin-bottom: 9px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr;     gap: 8px; margin-bottom: 9px; }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+
+.card       { border: 0.75px solid var(--border); border-radius: 7px; padding: 9px 11px; background: #fff; }
+.card-title { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.card-body  { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; }
+
+.phase-row   { display: flex; align-items: stretch; gap: 0; margin-bottom: 10px; }
+.phase-box   { flex: 1; border-radius: 7px; padding: 10px; text-align: center; }
+.phase-arrow { display: flex; align-items: center; padding: 0 5px; color: var(--text-muted); font-size: 14pt; }
+.phase-title { font-size: 10.5pt; font-weight: 600; margin-bottom: 3px; }
+.phase-desc  { font-size: 8.5pt; line-height: 1.4; }
+.ph-teal   { background: var(--teal-light); }   .ph-teal .phase-title   { color: var(--teal); }   .ph-teal .phase-desc   { color: #0F6E56; }
+.ph-purple { background: var(--purple-light); } .ph-purple .phase-title { color: var(--purple); } .ph-purple .phase-desc { color: #534AB7; }
+.ph-amber  { background: var(--amber-light); }  .ph-amber .phase-title  { color: var(--amber); }  .ph-amber .phase-desc  { color: #854F0B; }
+.ph-blue   { background: var(--blue-light); }   .ph-blue .phase-title   { color: var(--blue); }   .ph-blue .phase-desc   { color: #0C447C; }
+.ph-coral  { background: var(--coral-light); }  .ph-coral .phase-title  { color: var(--coral); }  .ph-coral .phase-desc  { color: #712B13; }
+
+.hl { border-left: 3px solid var(--teal-mid); background: var(--teal-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: #085041; line-height: 1.55; }
+.wl { border-left: 3px solid #EF9F27;         background: var(--amber-light); border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--amber); line-height: 1.55; }
+.il { border-left: 3px solid #378ADD;         background: var(--blue-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--blue); line-height: 1.55; }
+.rl { border-left: 3px solid #C74848;         background: var(--red-light);   border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--red); line-height: 1.55; }
+
+.code-block { background: var(--gray-light); border: 0.75px solid var(--border); border-radius: 6px; padding: 9px 12px; font-family: var(--font-mono); font-size: 8.5pt; line-height: 1.6; white-space: pre; margin-bottom: 9px; color: var(--text); }
+/* Syntax token classes — use inside .code-block */
+.kw { color: #3C3489; font-weight: 600; }   /* keyword (lambda, val, FROM, SELECT…) */
+.st { color: #0F6E56; }                      /* string literal */
+.cm { color: #8A8880; font-style: italic; }  /* comment (# … or // …) */
+.nm { color: #854F0B; }                      /* number / numeric literal */
+.fn { color: #0C447C; }                      /* function or method name */
+
+.step-item { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 7px; font-size: 9.5pt; color: var(--text); line-height: 1.55; }
+.step-num  { width: 20px; height: 20px; border-radius: 50%; background: #9FE1CB; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+
+.qa-block { margin-bottom: 9px; }
+.qa-q { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.qa-a { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; padding-left: 10px; border-left: 2px solid var(--border); }
+
+.tag { display: inline-block; font-size: 8pt; font-weight: 600; padding: 1px 7px; border-radius: 3px; margin-right: 3px; }
+.tg { background: var(--green-light); color: var(--green); }
+.tr { background: var(--red-light);   color: var(--red); }
+.ta { background: var(--amber-light); color: var(--amber); }
+.tb { background: var(--blue-light);  color: var(--blue); }
+
+.cmp    { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 9px; }
+.cmp th { background: var(--gray-light); color: var(--text); font-weight: 600; padding: 6px 10px; text-align: left; border: 0.75px solid var(--border); }
+.cmp td { padding: 5px 10px; border: 0.75px solid var(--border); color: var(--text-muted); vertical-align: top; line-height: 1.5; }
+.cmp td strong { color: var(--text); }
+
+.divider { border-top: 0.75px solid var(--border); margin: 14px 0; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { background: #fff; }
+  .page { width: 100%; padding: 15mm 14mm; }
+  .section { page-break-inside: avoid; }
+  .card    { page-break-inside: avoid; }
+  @page { size: A4; margin: 0; }
+}
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="lecture-header">
+    <div class="lecture-title">Lecture 7 &mdash; Spark I: Basics</div>
+    <div class="lecture-sub">CS4225 / CS5425 &middot; Big Data Systems for Data Science &middot; National University of Singapore</div>
+  </div>
+
+  <!-- Section 1: What is Spark? -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">1</span> What is Apache Spark?</div>
+    <div class="hl"><strong>Core insight:</strong> Apache Spark is a distributed computing framework that stores intermediate data in memory rather than writing it to disk, making it dramatically faster than Hadoop MapReduce &mdash; especially for iterative workloads where the same data is processed many times.</div>
+    <p>Think of Hadoop MapReduce as a factory assembly line that, after every step, boxes up the partially-finished product, ships it to a warehouse, and then retrieves it again for the next step. All that boxing, shipping, and unboxing is slow. Spark instead passes the partially-finished product directly to the next station in memory &mdash; no boxing, no shipping.</p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Distributed</div>
+        <div class="card-body">Data and computation are split across many machines, allowing datasets too large for a single node to be processed in parallel.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">In-Memory First</div>
+        <div class="card-body">Intermediate results are kept in worker RAM. Disk is only used when memory is insufficient ("spill to disk").</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Fault Tolerant</div>
+        <div class="card-body">Lost data is recomputed using a <strong>lineage graph</strong> (DAG) rather than expensive replication.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Why Spark? -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">2</span> Why Spark? Motivation over MapReduce</div>
+    <p>Hadoop MapReduce has two major limitations that Spark was designed to fix:</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Problem 1 &mdash; Disk I/O Cost</div>
+        <div class="card-body">Every MapReduce job writes its intermediate data (the output of the Map phase) to <strong>local disk</strong>, then reads it back for the Reduce phase. This is slow due to disk access times and network transfer during the shuffle.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Problem 2 &mdash; Not Iterative</div>
+        <div class="card-body">Machine learning algorithms (e.g., gradient descent) iterate over the same dataset dozens or hundreds of times. In MapReduce, each iteration is a separate job: read from HDFS &rarr; compute &rarr; write to HDFS &rarr; repeat. This is extremely wasteful.</div>
+      </div>
+    </div>
+    <p><strong>Spark's solution:</strong> keep data in memory across iterations. For a full-text search of 60 GB of Wikipedia on 20 EC2 machines, reading from cache took <strong>0.5 seconds</strong> vs. <strong>20 seconds</strong> from disk &mdash; a 40× speedup.</p>
+    <div class="hl">Spark also has dramatically simpler code. The WordCount program that takes ~60 lines in Hadoop MapReduce (with Mapper class, Reducer class, and a Driver class) is just <strong>5 lines</strong> in Spark.</div>
+  </div>
+
+  <!-- Section 3: Spark Architecture -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">3</span> Spark Architecture</div>
+    <p>Every Spark application has three core components working together:</p>
+
+    <div class="phase-row">
+      <div class="phase-box ph-purple">
+        <div class="phase-title">Driver Process</div>
+        <div class="phase-desc">Runs the user's <code>main()</code> function. Responds to user input, plans the computation, and distributes work to Executors. Receives final results.</div>
+      </div>
+      <div class="phase-arrow">&harr;</div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">Cluster Manager</div>
+        <div class="phase-desc">Allocates CPU and memory resources when the application requests them. Can be Spark's own manager, YARN, Mesos, or Kubernetes.</div>
+      </div>
+      <div class="phase-arrow">&harr;</div>
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Executors</div>
+        <div class="phase-desc">Worker processes on each node. They execute the tasks assigned by the Driver and send results back. Each executor has a fixed number of CPU slots and an allocated chunk of memory.</div>
+      </div>
+    </div>
+
+    <div class="il">In <strong>local mode</strong>, the Driver, Cluster Manager, and all Executors run on a single machine. This is useful for development and testing.</div>
+
+    <p>The API stack, from lowest to highest level, is: <strong>RDDs</strong> (raw distributed data) &rarr; <strong>DataFrames / Datasets</strong> (structured, SQL-like) &rarr; <strong>Spark SQL, MLlib, GraphX, Structured Streaming</strong> (domain-specific libraries built on top).</p>
+  </div>
+
+  <!-- Section 4: API Evolution -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">4</span> Evolution of Spark APIs</div>
+    <p>Spark has had three major API generations. Understanding all three is important because exam questions may use any of them.</p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">RDDs (2011)</div>
+        <div class="card-body">
+          <strong>Resilient Distributed Datasets.</strong> The original Spark API. A collection of JVM objects distributed across machines. You use functional operators like <code>map</code>, <code>filter</code>, <code>reduce</code>. Low-level and powerful, but verbose.<br><br>
+          <span class="tag tr">No optimizer</span> <span class="tag tr">Verbose</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">DataFrames (2013)</div>
+        <div class="card-body">
+          A collection of <code>Row</code> objects — think of it as a table with named columns, like a pandas DataFrame or SQL table. Uses an optimizer (Catalyst) that can automatically restructure queries for speed.<br><br>
+          <span class="tag tg">Optimizer</span> <span class="tag tg">SQL support</span> <span class="tag tr">Not type-safe</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Datasets (2013)</div>
+        <div class="card-body">
+          Combines the best of both: type-safe (like RDDs) and fast with optimizer (like DataFrames). Internally uses rows; externally uses typed JVM objects. <strong>Only available in Scala/Java</strong>, not Python or R.<br><br>
+          <span class="tag tg">Type-safe</span> <span class="tag tg">Optimizer</span>
+        </div>
+      </div>
+    </div>
+    <div class="wl"><strong>Exam trap:</strong> In Scala, <code>DataFrame</code> is simply a type alias for <code>Dataset[Row]</code>. They are the same thing. Datasets are <strong>not available in Python</strong> because Python is dynamically typed.</div>
+  </div>
+
+  <!-- Section 5: RDDs -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">5</span> Resilient Distributed Datasets (RDDs)</div>
+    <div class="hl"><strong>An RDD is an immutable, distributed collection of objects.</strong> It represents data spread across many machines. Once created, it cannot be changed — you only ever <em>create new</em> RDDs from existing ones.</div>
+
+    <p><strong>Creating an RDD:</strong> You can create an RDD by loading a file or parallelising a local collection:</p>
+    <div class="code-block">dataRDD = sc.<span class="fn">parallelize</span>([<span class="st">"Alice"</span>, <span class="st">"Bob"</span>, <span class="st">"Carol"</span>, <span class="st">"Daniel"</span>], <span class="nm">3</span>)
+<span class="cm"># Creates an RDD with 4 strings split across 3 partitions (worker nodes)</span>
+
+textFile = sc.<span class="fn">textFile</span>(<span class="st">"hdfs://..."</span>)
+<span class="cm"># Reads a file in parallel from HDFS; each worker reads a different block</span></div>
+
+    <div class="divider"></div>
+    <p style="font-weight:600; font-size:10.5pt; margin-bottom:6px;">5a &mdash; Transformations (Lazy)</p>
+    <p>A <strong>transformation</strong> takes one RDD and returns a new RDD. Critically, transformations are <strong>lazy</strong>: they do not actually execute when you call them. Instead, Spark records the transformation in a plan and waits.</p>
+    <div class="code-block">dataRDD  = sc.<span class="fn">parallelize</span>([<span class="st">"Alice"</span>, <span class="st">"Bob"</span>, <span class="st">"Carol"</span>, <span class="st">"Daniel"</span>], <span class="nm">3</span>)
+nameLen  = dataRDD.<span class="fn">map</span>(<span class="kw">lambda</span> s: <span class="fn">len</span>(s))   <span class="cm"># records the plan — nothing runs yet!</span></div>
+    <p><strong>Why lazy?</strong> Spark can look at the entire plan before executing. This lets it optimise the sequence of operations (e.g., push a <code>filter</code> earlier so less data needs to flow through later steps, or remove steps that are never needed).</p>
+    <p><strong><code>map</code> vs <code>flatMap</code>:</strong> <code>map</code> produces exactly one output element per input (1-to-1). <code>flatMap</code> produces a list per input and then flattens all lists into a single RDD (1-to-many). Use <code>flatMap</code> whenever one element should expand into multiple elements.</p>
+    <div class="code-block">sentences = sc.<span class="fn">parallelize</span>([<span class="st">"Hello World"</span>, <span class="st">"Spark is great"</span>])
+
+<span class="cm"># map: each line becomes a list — output is still nested</span>
+sentences.<span class="fn">map</span>(<span class="kw">lambda</span> line: line.<span class="fn">split</span>(<span class="st">" "</span>)).<span class="fn">collect</span>()
+<span class="cm"># → [["Hello", "World"], ["Spark", "is", "great"]]</span>
+
+<span class="cm"># flatMap: each line is split, then all words are merged into one flat RDD</span>
+sentences.<span class="fn">flatMap</span>(<span class="kw">lambda</span> line: line.<span class="fn">split</span>(<span class="st">" "</span>)).<span class="fn">collect</span>()
+<span class="cm"># → ["Hello", "World", "Spark", "is", "great"]</span></div>
+    <div class="il"><code>flatMap</code> is the first step in WordCount: every line of a text file is split into its words, producing many words per line, all flattened into a single stream that <code>map</code> and <code>reduceByKey</code> then operate on.</div>
+    <p><strong>Common transformation operations:</strong></p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Narrow Transformations</div>
+        <div class="card-body"><code>map</code>, <code>flatMap</code>, <code>filter</code>, <code>contains</code><br><br>Each partition of the <em>parent</em> RDD feeds into at most <strong>one</strong> partition of the child RDD. No data needs to cross the network.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Wide Transformations</div>
+        <div class="card-body"><code>reduceByKey</code>, <code>groupBy</code>, <code>orderBy</code>, <code>join</code><br><br>Each partition of the parent may contribute to <strong>multiple</strong> partitions of the child. Data must be shuffled across the network.</div>
+      </div>
+    </div>
+    <table class="cmp">
+      <tr><th>Operation</th><th>Type</th><th>Example</th><th>Result</th></tr>
+      <tr><td><strong>map</strong></td><td><span class="tag tg">Narrow</span></td><td><code>rdd.map(lambda x: x * 2)</code></td><td><code>[2, 4, 6, 8, 10]</code></td></tr>
+      <tr><td><strong>flatMap</strong></td><td><span class="tag tg">Narrow</span></td><td><code>rdd.flatMap(lambda x: [x, -x])</code></td><td><code>[1,-1, 2,-2, 3,-3, ...]</code></td></tr>
+      <tr><td><strong>filter</strong></td><td><span class="tag tg">Narrow</span></td><td><code>rdd.filter(lambda x: x % 2 == 0)</code></td><td><code>[2, 4]</code></td></tr>
+      <tr><td><strong>reduceByKey</strong></td><td><span class="tag tr">Wide</span></td><td><code>pairs.reduceByKey(lambda a,b: a+b)</code></td><td><code>[("a",4), ("b",2)]</code></td></tr>
+      <tr><td><strong>groupByKey</strong></td><td><span class="tag tr">Wide</span></td><td><code>pairs.groupByKey()</code></td><td><code>[("a",[1,3]), ("b",[2])]</code></td></tr>
+      <tr><td><strong>sortBy</strong></td><td><span class="tag tr">Wide</span></td><td><code>rdd.sortBy(lambda x: x, ascending=False)</code></td><td><code>[5, 4, 3, 2, 1]</code></td></tr>
+      <tr><td><strong>join</strong></td><td><span class="tag tr">Wide</span></td><td><code>pairs.join(r2)</code></td><td><code>[("a",(1,"x")), ("a",(3,"x")), ...]</code></td></tr>
+      <tr><td><strong>select</strong></td><td><span class="tag tb">DF only</span></td><td><code>df.select("name", "age")</code></td><td>DataFrame with 2 columns</td></tr>
+      <tr><td><strong>filter</strong></td><td><span class="tag tb">DF only</span></td><td><code>df.filter(df["age"] > 25)</code></td><td>Rows where age &gt; 25</td></tr>
+      <tr><td><strong>groupBy</strong></td><td><span class="tag tb">DF only</span></td><td><code>df.groupBy("dept").count()</code></td><td>Count per department</td></tr>
+      <tr><td><strong>orderBy</strong></td><td><span class="tag tb">DF only</span></td><td><code>df.orderBy("age")</code></td><td>Sorted by age ascending</td></tr>
+      <tr><td><strong>join</strong></td><td><span class="tag tb">DF only</span></td><td><code>df.join(df2, "id")</code></td><td>Joined on "id" column</td></tr>
+    </table>
+
+    <div class="divider"></div>
+    <p style="font-weight:600; font-size:10.5pt; margin-bottom:6px;">5b &mdash; Actions (Trigger Execution)</p>
+    <p>An <strong>action</strong> is the signal that tells Spark "run everything now and give me a result." Only when an action is called does Spark actually start computing.</p>
+    <div class="code-block">dataRDD = sc.<span class="fn">parallelize</span>([<span class="st">"Alice"</span>, <span class="st">"Bob"</span>, <span class="st">"Carol"</span>, <span class="st">"Daniel"</span>], <span class="nm">3</span>)
+nameLen = dataRDD.<span class="fn">map</span>(<span class="kw">lambda</span> s: <span class="fn">len</span>(s))   <span class="cm"># transformation — still lazy</span>
+nameLen.<span class="fn">collect</span>()                          <span class="cm"># action — NOW Spark executes!</span>
+<span class="cm"># Output: [5, 3, 5, 6]</span></div>
+    <p>Different actions return different kinds of results. Here the same <code>flatMap</code> transformation is triggered by two different actions:</p>
+    <div class="code-block">sentences = sc.<span class="fn">parallelize</span>([<span class="st">"Hello World"</span>, <span class="st">"Spark is great"</span>])
+words = sentences.<span class="fn">flatMap</span>(<span class="kw">lambda</span> line: line.<span class="fn">split</span>(<span class="st">" "</span>))  <span class="cm"># lazy — plan recorded</span>
+
+words.<span class="fn">count</span>()        <span class="cm"># action — returns 5 (total words across all partitions)</span>
+<span class="cm"># → 5</span>
+
+words.<span class="fn">first</span>()        <span class="cm"># action — returns the first element only</span>
+<span class="cm"># → "Hello"</span></div>
+    <p><strong>Common actions:</strong> <code>collect()</code> (retrieve all elements to driver), <code>count()</code>, <code>first()</code>, <code>take(n)</code>, <code>save()</code>, <code>show()</code>.</p>
+    <table class="cmp">
+      <tr><th>Action</th><th>Example</th><th>Returns</th></tr>
+      <tr><td><strong>collect()</strong></td><td><code>rdd.collect()</code></td><td><code>[1, 2, 3, 4, 5]</code> — all elements to driver</td></tr>
+      <tr><td><strong>count()</strong></td><td><code>rdd.count()</code></td><td><code>5</code> — number of elements</td></tr>
+      <tr><td><strong>first()</strong></td><td><code>rdd.first()</code></td><td><code>1</code> — first element only</td></tr>
+      <tr><td><strong>take(n)</strong></td><td><code>rdd.take(3)</code></td><td><code>[1, 2, 3]</code> — first n elements</td></tr>
+      <tr><td><strong>saveAsTextFile()</strong></td><td><code>rdd.saveAsTextFile("hdfs://out/")</code></td><td>Nothing — writes partitions to file system</td></tr>
+      <tr><td><strong>show(n)</strong></td><td><code>df.show(5)</code></td><td>Nothing — prints first n rows to console (DF only)</td></tr>
+    </table>
+
+    <div class="divider"></div>
+    <p style="font-weight:600; font-size:10.5pt; margin-bottom:6px;">5c &mdash; How Distributed Processing Works</p>
+    <p>When an action fires, Spark sends tasks to all workers in parallel. Each worker processes its own partition. Results are only sent back to the driver at the very end (for <code>collect()</code>) or aggregated incrementally (for <code>count()</code>).</p>
+    <div class="step-item"><span class="step-num">1</span><div>Driver sends task instructions to each worker node.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div>Each worker applies the transformation(s) to its partition independently and in parallel.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div>Results from each partition are sent back to the Driver and combined.</div></div>
+    <div class="il">For <code>nameLen.collect()</code> on <code>["Alice","Bob","Carol","Daniel"]</code> split 3 ways: Worker 1 computes [5,3], Worker 2 computes [5], Worker 3 computes [6]. Driver collects and merges them into [5,3,5,6].</div>
+  </div>
+
+  <!-- Section 6: Caching -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">6</span> Caching &mdash; Reusing RDDs in Memory</div>
+    <p>By default, every time you call an action on an RDD, Spark recomputes it from scratch (re-reading the original data and replaying all transformations). For interactive or iterative workflows, this is very wasteful. <strong>Caching</strong> tells Spark to keep the RDD in worker RAM after it is first computed.</p>
+
+    <div class="code-block">lines    = sc.<span class="fn">textFile</span>(<span class="st">"hdfs://..."</span>)
+errors   = lines.<span class="fn">filter</span>(<span class="kw">lambda</span> s: s.<span class="fn">startswith</span>(<span class="st">"ERROR"</span>))
+messages = errors.<span class="fn">map</span>(<span class="kw">lambda</span> s: s.<span class="fn">split</span>(<span class="st">"\t"</span>)[<span class="nm">2</span>])
+messages.<span class="fn">cache</span>()                                           <span class="cm"># pin this RDD in memory</span>
+
+messages.<span class="fn">filter</span>(<span class="kw">lambda</span> s: <span class="st">"mysql"</span> <span class="kw">in</span> s).<span class="fn">count</span>()           <span class="cm"># 1st query: loads from HDFS, caches</span>
+messages.<span class="fn">filter</span>(<span class="kw">lambda</span> s: <span class="st">"php"</span> <span class="kw">in</span> s).<span class="fn">count</span>()             <span class="cm"># 2nd query: reads from cache — FAST!</span></div>
+
+    <p>On the <strong>first action</strong>: Spark reads from HDFS, processes, and stores the result in each worker's memory. On <strong>subsequent actions</strong>: Spark reads directly from the in-memory cache — no disk I/O at all.</p>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title"><code>cache()</code></div>
+        <div class="card-body">Stores the RDD in <strong>memory only</strong> on each worker node. This is a shorthand for <code>persist(MEMORY_ONLY)</code>. Fast to read, but if memory runs out, partitions are evicted and must be recomputed from scratch.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><code>persist(options)</code></div>
+        <div class="card-body">More flexible. Options include:<br>
+          &bull; <code>MEMORY_ONLY</code> — RAM only<br>
+          &bull; <code>MEMORY_AND_DISK</code> — RAM first, spill to disk<br>
+          &bull; <code>DISK_ONLY</code> — disk only<br>
+          &bull; Off-heap memory variants</div>
+      </div>
+    </div>
+
+    <p><strong>When to cache:</strong> Cache an RDD when it is (1) expensive to compute and (2) used more than once. Do not cache everything &mdash; memory is limited.</p>
+    <div class="wl"><strong>LRU eviction:</strong> If worker nodes run out of memory, Spark evicts the <strong>Least Recently Used</strong> cached RDD partitions. The evicted partitions will be recomputed on demand from the lineage. Be aware of memory pressure when caching large datasets.</div>
+  </div>
+
+  <!-- Section 7: DAG and Dependencies -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">7</span> Directed Acyclic Graph (DAG) &amp; Dependencies</div>
+
+    <p>Internally, Spark builds a <strong>Directed Acyclic Graph (DAG)</strong> to represent all the RDDs and how they are derived from one another. Every transformation adds a new node to this graph. Every action triggers Spark to evaluate the graph.</p>
+
+    <div class="hl"><strong>Transformations build the DAG. Actions trigger execution of the DAG.</strong></div>
+
+    <!-- DAG Diagram -->
+    <div style="margin: 10px 0 9px 0; display: flex; flex-direction: column; align-items: center; gap: 0;">
+
+      <!-- STAGE 1 bounding box -->
+      <div style="width: 100%; border: 1.5px dashed var(--teal-mid); border-radius: 10px; background: var(--teal-light); padding: 12px 16px; display: flex; flex-direction: column; align-items: center; gap: 0;">
+        <div style="align-self: flex-start; font-size: 7.5pt; font-weight: 600; color: var(--teal); letter-spacing: 0.5px; margin-bottom: 10px;">STAGE 1 &mdash; narrow dependencies <span style="font-weight:400;">(no network transfer)</span></div>
+
+        <!-- Node: textFile RDD -->
+        <div style="background:#fff; border:2px solid var(--teal); border-radius:6px; padding:6px 18px; text-align:center; min-width:200px;">
+          <div style="font-family:var(--font-mono); font-size:9pt; font-weight:600; color:var(--teal);">textFile RDD</div>
+          <div style="font-size:7pt; color:var(--text-muted); font-style:italic; margin-top:2px;">"Hello World", "Spark is great", &hellip;</div>
+        </div>
+
+        <!-- Edge: flatMap -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:1px; margin:3px 0;">
+          <div style="width:1.5px; height:10px; background:var(--teal-mid);"></div>
+          <div style="background:#fff; border:1px solid var(--teal-mid); border-radius:20px; padding:2px 12px; font-family:var(--font-mono); font-size:8pt; color:var(--teal);">flatMap(line.split(&ldquo; &rdquo;))</div>
+          <div style="width:1.5px; height:6px; background:var(--teal-mid);"></div>
+          <div style="color:var(--teal-mid); font-size:11pt; line-height:1;">&#9660;</div>
+        </div>
+
+        <!-- Node: words RDD -->
+        <div style="background:#fff; border:2px solid var(--teal); border-radius:6px; padding:6px 18px; text-align:center; min-width:200px;">
+          <div style="font-family:var(--font-mono); font-size:9pt; font-weight:600; color:var(--teal);">words RDD</div>
+          <div style="font-size:7pt; color:var(--text-muted); font-style:italic; margin-top:2px;">"Hello", "World", "Spark", "is", &hellip;</div>
+        </div>
+
+        <!-- Edge: map -->
+        <div style="display:flex; flex-direction:column; align-items:center; gap:1px; margin:3px 0;">
+          <div style="width:1.5px; height:10px; background:var(--teal-mid);"></div>
+          <div style="background:#fff; border:1px solid var(--teal-mid); border-radius:20px; padding:2px 12px; font-family:var(--font-mono); font-size:8pt; color:var(--teal);">map(word &rarr; (word, 1))</div>
+          <div style="width:1.5px; height:6px; background:var(--teal-mid);"></div>
+          <div style="color:var(--teal-mid); font-size:11pt; line-height:1;">&#9660;</div>
+        </div>
+
+        <!-- Node: pairs RDD -->
+        <div style="background:#fff; border:2px solid var(--teal); border-radius:6px; padding:6px 18px; text-align:center; min-width:200px;">
+          <div style="font-family:var(--font-mono); font-size:9pt; font-weight:600; color:var(--teal);">pairs RDD</div>
+          <div style="font-size:7pt; color:var(--text-muted); font-style:italic; margin-top:2px;">("Hello",1), ("World",1), ("Spark",1), &hellip;</div>
+        </div>
+      </div><!-- end Stage 1 -->
+
+      <!-- Wide dependency edge: reduceByKey (shuffle boundary) -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:1px; margin:4px 0;">
+        <div style="width:1.5px; height:10px; background:var(--amber);"></div>
+        <div style="background:var(--amber-light); border:1.5px solid var(--amber); border-radius:20px; padding:3px 14px; font-family:var(--font-mono); font-size:8pt; color:var(--amber); font-weight:600;">reduceByKey(_ + _)</div>
+        <div style="background:var(--amber-light); border:1px solid var(--amber); border-radius:4px; padding:1px 10px; font-size:7pt; color:var(--amber); margin-top:2px;">&#9654; wide dependency &mdash; shuffle (writes to disk &amp; exchanges data across all nodes)</div>
+        <div style="width:1.5px; height:6px; background:var(--amber);"></div>
+        <div style="color:var(--amber); font-size:11pt; line-height:1;">&#9660;</div>
+      </div>
+
+      <!-- STAGE 2 bounding box -->
+      <div style="width: 100%; border: 1.5px dashed var(--purple); border-radius: 10px; background: var(--purple-light); padding: 12px 16px; display: flex; flex-direction: column; align-items: center; gap: 0;">
+        <div style="align-self: flex-start; font-size: 7.5pt; font-weight: 600; color: var(--purple); letter-spacing: 0.5px; margin-bottom: 10px;">STAGE 2 &mdash; post-shuffle</div>
+
+        <!-- Node: counts RDD -->
+        <div style="background:#fff; border:2px solid var(--purple); border-radius:6px; padding:6px 18px; text-align:center; min-width:200px;">
+          <div style="font-family:var(--font-mono); font-size:9pt; font-weight:600; color:var(--purple);">counts RDD</div>
+          <div style="font-size:7pt; color:var(--text-muted); font-style:italic; margin-top:2px;">("Hello",2), ("World",1), ("Spark",3), &hellip;</div>
+        </div>
+      </div><!-- end Stage 2 -->
+
+      <!-- Action edge: save -->
+      <div style="display:flex; flex-direction:column; align-items:center; gap:1px; margin:4px 0;">
+        <div style="width:1.5px; height:10px; background:var(--blue);"></div>
+        <div style="background:var(--blue-light); border:1.5px solid var(--blue); border-radius:20px; padding:3px 14px; font-family:var(--font-mono); font-size:8pt; color:var(--blue); font-weight:600;">counts.save(&ldquo;hdfs://...&rdquo;) &nbsp; &larr; ACTION</div>
+        <div style="width:1.5px; height:6px; background:var(--blue);"></div>
+        <div style="color:var(--blue); font-size:11pt; line-height:1;">&#9660;</div>
+      </div>
+
+      <!-- Node: HDFS output -->
+      <div style="background:var(--gray-light); border:1.5px solid var(--border); border-radius:6px; padding:6px 18px; text-align:center; min-width:200px;">
+        <div style="font-family:var(--font-mono); font-size:9pt; font-weight:600; color:var(--gray);">HDFS output</div>
+        <div style="font-size:7pt; color:var(--text-muted); font-style:italic; margin-top:2px;">word count results written to disk</div>
+      </div>
+
+    </div><!-- end diagram -->
+
+    <p>Spark uses the concept of <strong>narrow</strong> and <strong>wide</strong> dependencies to decide how to execute the DAG efficiently:</p>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Narrow Dependency</div>
+        <div class="card-body">Each partition of the <em>parent</em> RDD is used by <strong>at most one</strong> partition of the child RDD.<br><br>Examples: <code>map</code>, <code>flatMap</code>, <code>filter</code><br><br><span class="tag tg">No shuffle needed</span> — workers process independently.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Wide Dependency</div>
+        <div class="card-body">Each partition of the parent RDD may contribute to <strong>multiple</strong> partitions of the child RDD.<br><br>Examples: <code>reduceByKey</code>, <code>groupBy</code>, <code>orderBy</code><br><br><span class="tag tr">Shuffle required</span> — data must be exchanged across machines.</div>
+      </div>
+    </div>
+
+    <p><strong>Stages:</strong> Spark groups consecutive narrow-dependency transformations into a single <strong>stage</strong>. Within a stage, all operations run on the same machine without any network transfer. A new stage begins wherever a wide dependency (shuffle) is required.</p>
+
+    <div class="phase-row">
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Stage 1</div>
+        <div class="phase-desc">Consecutive narrow transformations (e.g., textFile &rarr; flatMap &rarr; map). Run on each partition locally.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">Shuffle Boundary</div>
+        <div class="phase-desc">Wide transformation (e.g., reduceByKey). Intermediate results written to disk and exchanged across nodes &mdash; like MapReduce's shuffle.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-purple">
+        <div class="phase-title">Stage 2</div>
+        <div class="phase-desc">Continues with further narrow transformations. Each partition now holds the merged data for a specific key.</div>
+      </div>
+    </div>
+
+    <div class="wl"><strong>Performance tip:</strong> Shuffles involve writing to disk and transferring data over the network — exactly what MapReduce does at every step. Minimising the number of wide/shuffle operations is one of the most important ways to optimise a Spark job.</div>
+  </div>
+
+  <!-- Section 8: Lineage and Fault Tolerance -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">8</span> Lineage &amp; Fault Tolerance</div>
+    <p>Spark does <strong>not</strong> use replication (copying data to multiple machines) to handle faults the way HDFS does. Why? Because Spark tries to keep all data in memory, and memory is much more limited than disk. Duplicating everything in memory would be far too expensive.</p>
+    <p>Instead, Spark uses <strong>lineage</strong>: each RDD knows exactly how it was derived (which parent RDD and which transformation produced it). This information is stored in the DAG.</p>
+
+    <div class="step-item"><span class="step-num">1</span><div>A worker node fails and the data in its partitions is lost.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div>Spark detects the failure and launches a replacement task on another worker.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div>Spark traces the DAG lineage to find the most recent ancestor of the lost partition that is still available (in cache, on disk, or as the original input file).</div></div>
+    <div class="step-item"><span class="step-num">4</span><div>Only the lost partitions are recomputed &mdash; the rest of the job continues normally.</div></div>
+
+    <div class="hl"><strong>Key insight:</strong> Lineage-based fault tolerance is cheap because only the <em>lost partitions</em> need recomputation, not the entire dataset. Caching RDDs at intermediate stages makes recovery even faster by shortening the recomputation chain.</div>
+  </div>
+
+  <!-- Section 9: DataFrames -->
+  <div class="section">
+    <div class="section-title"><span class="badge bb">9</span> DataFrames</div>
+    <p>A <strong>DataFrame</strong> represents a table of data with named, typed columns &mdash; conceptually identical to a SQL table or a pandas DataFrame, but distributed across many machines. It is the <strong>recommended</strong> API for most Spark work.</p>
+    <div class="hl">DataFrames are a higher-level abstraction over RDDs. All DataFrame operations are ultimately compiled down to RDD operations by Spark's optimizer (Catalyst). You get convenience <em>and</em> performance.</div>
+
+    <p><strong>Loading a DataFrame from CSV:</strong></p>
+    <div class="code-block">flightData2015 = spark\
+    .<span class="fn">read</span>\
+    .<span class="fn">option</span>(<span class="st">"inferSchema"</span>, <span class="st">"true"</span>)\   <span class="cm"># auto-detect column types</span>
+    .<span class="fn">option</span>(<span class="st">"header"</span>, <span class="st">"true"</span>)\        <span class="cm"># first row is column names</span>
+    .<span class="fn">csv</span>(<span class="st">"/mnt/defg/flight-data/csv/2015-summary.csv"</span>)</div>
+
+    <p><strong>Method 1 — SQL queries:</strong> Register the DataFrame as a temporary SQL view, then query it with plain SQL. The result is another DataFrame.</p>
+    <div class="code-block">flightData2015.<span class="fn">createOrReplaceTempView</span>(<span class="st">"flight_data_2015"</span>)
+
+maxSql = spark.<span class="fn">sql</span>("""
+    <span class="kw">SELECT</span> DEST_COUNTRY_NAME, <span class="fn">sum</span>(count) <span class="kw">AS</span> destination_total
+    <span class="kw">FROM</span> flight_data_2015
+    <span class="kw">GROUP BY</span> DEST_COUNTRY_NAME
+    <span class="kw">ORDER BY</span> <span class="fn">sum</span>(count) <span class="kw">DESC</span>
+    <span class="kw">LIMIT</span> <span class="nm">5</span>
+""")
+maxSql.<span class="fn">collect</span>()   <span class="cm"># action: runs the query and returns results to driver</span></div>
+
+    <p><strong>Method 2 — DataFrame API:</strong> Chain transformation methods. This produces identical results to the SQL query above &mdash; Spark optimises both to the same execution plan.</p>
+    <div class="code-block"><span class="kw">from</span> pyspark.sql.functions <span class="kw">import</span> desc
+
+flightData2015\
+    .<span class="fn">groupBy</span>(<span class="st">"DEST_COUNTRY_NAME"</span>)\
+    .<span class="fn">sum</span>(<span class="st">"count"</span>)\
+    .<span class="fn">withColumnRenamed</span>(<span class="st">"sum(count)"</span>, <span class="st">"destination_total"</span>)\
+    .<span class="fn">sort</span>(<span class="fn">desc</span>(<span class="st">"destination_total"</span>))\    <span class="cm"># desc() returns a column object</span>
+    .<span class="fn">limit</span>(<span class="nm">5</span>)\
+    .<span class="fn">collect</span>()</div>
+    <div class="il">Transformation functions like <code>groupBy</code>, <code>sort</code>, <code>limit</code> are still <strong>lazy</strong> — they build a plan. Only <code>collect()</code> triggers execution.</div>
+  </div>
+
+  <!-- Section 10: Datasets -->
+  <div class="section">
+    <div class="section-title"><span class="badge bb">10</span> Datasets</div>
+    <p>A <strong>Dataset</strong> is like a DataFrame but <strong>type-safe</strong>: instead of generic <code>Row</code> objects, it is parameterised with a specific class so the compiler can catch type errors at compile time rather than at runtime.</p>
+    <div class="code-block"><span class="cm">// Scala only — Datasets are not available in Python or R</span>
+<span class="kw">case class</span> Flight(DEST_COUNTRY_NAME: <span class="kw">String</span>, ORIGIN_COUNTRY_NAME: <span class="kw">String</span>, count: <span class="kw">BigInt</span>)
+
+<span class="kw">val</span> flightsDF = spark.read.<span class="fn">parquet</span>(<span class="st">"/mnt/defg/flight-data/parquet/2010-summary.parquet/"</span>)
+<span class="kw">val</span> flights   = flightsDF.<span class="fn">as</span>[Flight]   <span class="cm">// cast DataFrame to typed Dataset[Flight]</span>
+flights.<span class="fn">collect</span>()                       <span class="cm">// returns Array[Flight], not Array[Row]</span></div>
+    <div class="wl"><strong>Python note:</strong> Python does not have Datasets because it is dynamically typed &mdash; type checking happens at runtime, not compile time. In Python, you only use RDDs and DataFrames. In Scala, <code>DataFrame = Dataset[Row]</code>, so they are the same type.</div>
+  </div>
+
+  <!-- Section 11: Comparison Table -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">11</span> RDD vs DataFrame vs Dataset</div>
+    <table class="cmp">
+      <tr>
+        <th>Dimension</th>
+        <th>RDD</th>
+        <th>DataFrame</th>
+        <th>Dataset</th>
+      </tr>
+      <tr>
+        <td><strong>Abstraction level</strong></td>
+        <td>Low-level</td>
+        <td>High-level</td>
+        <td>High-level</td>
+      </tr>
+      <tr>
+        <td><strong>Data representation</strong></td>
+        <td>Any JVM objects</td>
+        <td><code>Row</code> objects</td>
+        <td>Typed JVM objects</td>
+      </tr>
+      <tr>
+        <td><strong>Type safety</strong></td>
+        <td>Yes (compile time)</td>
+        <td>No (runtime)</td>
+        <td>Yes (compile time)</td>
+      </tr>
+      <tr>
+        <td><strong>Catalyst optimizer</strong></td>
+        <td>No</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td><strong>SQL interface</strong></td>
+        <td>No</td>
+        <td>Yes</td>
+        <td>Yes</td>
+      </tr>
+      <tr>
+        <td><strong>Languages</strong></td>
+        <td>Scala, Java, Python, R</td>
+        <td>Scala, Java, Python, R</td>
+        <td>Scala, Java only</td>
+      </tr>
+      <tr>
+        <td><strong>When to use</strong></td>
+        <td>Low-level control; unstructured data</td>
+        <td>Most tasks; best for Python users</td>
+        <td>Type safety needed in Scala/Java</td>
+      </tr>
+      <tr>
+        <td><strong>Introduced</strong></td>
+        <td>2011</td>
+        <td>2013</td>
+        <td>2015 (Spark 1.6)</td>
+      </tr>
+    </table>
+
+    <div class="divider"></div>
+    <p style="font-weight:600; font-size:10.5pt; margin-bottom:6px;">Spark vs Hadoop MapReduce</p>
+    <table class="cmp">
+      <tr>
+        <th>Dimension</th>
+        <th>Hadoop MapReduce</th>
+        <th>Apache Spark</th>
+      </tr>
+      <tr>
+        <td><strong>Intermediate storage</strong></td>
+        <td>Always writes to HDFS (disk)</td>
+        <td>In-memory by default; spills to disk only if needed</td>
+      </tr>
+      <tr>
+        <td><strong>Iterative workloads</strong></td>
+        <td>Very slow &mdash; each iteration re-reads from disk</td>
+        <td>Fast &mdash; data cached in memory across iterations</td>
+      </tr>
+      <tr>
+        <td><strong>Fault tolerance</strong></td>
+        <td>Replication (3× default on HDFS)</td>
+        <td>Lineage recomputation via DAG</td>
+      </tr>
+      <tr>
+        <td><strong>Programming model</strong></td>
+        <td>Must express everything as map + reduce</td>
+        <td>Rich API: map, filter, join, groupBy, SQL, ML, etc.</td>
+      </tr>
+      <tr>
+        <td><strong>Ease of use</strong></td>
+        <td>Verbose &mdash; many lines of boilerplate</td>
+        <td>Concise &mdash; WordCount in 5 lines</td>
+      </tr>
+      <tr>
+        <td><strong>Speed (iterative)</strong></td>
+        <td>Baseline</td>
+        <td>Up to 100× faster in memory</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Section 12: Exam-style Q&A -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">12</span> Exam-style Q&amp;A</div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is the difference between a transformation and an action in Spark? Give one example of each.</div>
+      <div class="qa-a">A transformation takes an RDD and returns a new RDD, but is <em>lazy</em> — it is not executed immediately. Example: <code>map()</code>, <code>filter()</code>. An action triggers the actual computation and returns a result to the driver or writes output. Example: <code>collect()</code>, <code>count()</code>. Spark only runs the computation when an action is called, which allows it to optimise the full execution plan first.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Explain the difference between narrow and wide dependencies in Spark. Why does this distinction matter?</div>
+      <div class="qa-a">A narrow dependency is where each partition of the parent RDD contributes to <em>at most one</em> partition of the child (e.g., <code>map</code>, <code>filter</code>). A wide dependency is where a parent partition may contribute to <em>multiple</em> child partitions, requiring a shuffle (e.g., <code>reduceByKey</code>, <code>groupBy</code>). The distinction matters because: (1) Spark groups consecutive narrow dependencies into a single "stage" executed on the same machine with no network transfer, and (2) wide dependencies require shuffling data across the network and writing to disk, like MapReduce. Minimising wide dependencies improves performance.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: How does Spark achieve fault tolerance without replicating data?</div>
+      <div class="qa-a">Spark uses <strong>lineage</strong>. Each RDD records how it was derived from its parent(s) in a DAG. If a worker fails and its partitions are lost, Spark uses the lineage to recompute only the lost partitions from the nearest available ancestor (the original input file, a checkpoint, or a cached RDD). This avoids the need for expensive 3× replication in memory. Replication on disk (HDFS) is still used for the original input data.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: When should you use <code>cache()</code>? What happens if you cache too many RDDs?</div>
+      <div class="qa-a">Use <code>cache()</code> when an RDD is (1) expensive to recompute and (2) will be used more than once. If too many RDDs are cached and memory runs out, Spark applies LRU (Least Recently Used) eviction — the least recently accessed partitions are dropped from memory and must be recomputed from lineage when needed again. Caching indiscriminately can slow things down by causing constant eviction and recomputation.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is a DAG in Spark? What builds it and what triggers it?</div>
+      <div class="qa-a">A DAG (Directed Acyclic Graph) is Spark's internal representation of the computation plan — a graph of RDD nodes connected by transformations. <strong>Transformations build the DAG</strong> (by adding nodes) but execute nothing. <strong>Actions trigger execution</strong> of the DAG, causing Spark to evaluate the full graph, optimise it, and run the tasks on the cluster.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is the key advantage of DataFrames over RDDs?</div>
+      <div class="qa-a">DataFrames go through Spark's Catalyst optimiser, which can automatically restructure the query for better performance (e.g., pushing filters earlier, selecting only needed columns). RDDs have no such optimiser — Spark runs exactly what you write. DataFrames also provide a SQL interface and are easier to use. The trade-off is that RDDs offer more low-level control for operations that do not fit the structured/tabular model.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Why are Datasets not available in Python?</div>
+      <div class="qa-a">Datasets provide compile-time type safety, which requires a statically typed language where the type of every variable is known before the program runs. Python is dynamically typed — types are checked at runtime, not compile time. Therefore, the type-safety guarantee that Datasets provide cannot be enforced in Python, and Datasets are only available in Scala and Java.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

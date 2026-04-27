@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 5 — MapReduce &amp; Data Mining | CS4225/CS5425</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --teal: #0F6E56;
+      --teal-light: #E1F5EE;
+      --teal-mid: #1D9E75;
+      --teal-dark: #085041;
+      --purple: #3C3489;
+      --purple-light: #EEEDFE;
+      --purple-mid: #534AB7;
+      --amber: #854F0B;
+      --amber-light: #FAEEDA;
+      --blue: #0C447C;
+      --blue-light: #E6F1FB;
+      --blue-mid: #185FA5;
+      --coral: #712B13;
+      --coral-light: #FAECE7;
+      --red-light: #FCEBEB;
+      --red: #791F1F;
+      --green-light: #EAF3DE;
+      --green: #27500A;
+      --gray: #444441;
+      --gray-light: #F1EFE8;
+      --border: #D3D1C7;
+      --text: #1a1a1a;
+      --text-muted: #5F5E5A;
+      --font-body: 'DM Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    html,
+    body {
+      background: #ffffff;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 11pt;
+      line-height: 1.65;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 18mm 16mm 18mm 16mm;
+    }
+
+    .lecture-header {
+      border-bottom: 2.5px solid var(--teal-mid);
+      padding-bottom: 10px;
+      margin-bottom: 22px;
+    }
+
+    .lecture-title {
+      font-size: 20pt;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+
+    .lecture-sub {
+      font-size: 9pt;
+      color: var(--text-muted);
+      margin-top: 3px;
+      letter-spacing: 0.3px;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 12pt;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 9px;
+      padding-bottom: 4px;
+      border-bottom: 0.75px solid var(--border);
+    }
+
+    .badge {
+      font-size: 8pt;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 20px;
+      letter-spacing: 0.2px;
+    }
+
+    .bt {
+      background: var(--teal-light);
+      color: var(--teal);
+    }
+
+    .bp {
+      background: var(--purple-light);
+      color: var(--purple);
+    }
+
+    .ba {
+      background: var(--amber-light);
+      color: var(--amber);
+    }
+
+    .bb {
+      background: var(--blue-light);
+      color: var(--blue);
+    }
+
+    .bc {
+      background: var(--coral-light);
+      color: var(--coral);
+    }
+
+    p {
+      font-size: 10.5pt;
+      color: var(--text);
+      line-height: 1.65;
+      margin-bottom: 7px;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 8.5pt;
+      background: var(--gray-light);
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: var(--text);
+    }
+
+    strong {
+      font-weight: 600;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 9px;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 9px;
+    }
+
+    .grid4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 9px;
+    }
+
+    .card {
+      border: 0.75px solid var(--border);
+      border-radius: 7px;
+      padding: 9px 11px;
+      background: #fff;
+    }
+
+    .card-title {
+      font-size: 9.5pt;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .card-body {
+      font-size: 9.5pt;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    .hl {
+      border-left: 3px solid var(--teal-mid);
+      background: var(--teal-light);
+      border-radius: 0 6px 6px 0;
+      padding: 8px 11px;
+      margin-bottom: 9px;
+      font-size: 9.5pt;
+      color: var(--teal-dark);
+      line-height: 1.55;
+    }
+
+    .wl {
+      border-left: 3px solid #EF9F27;
+      background: var(--amber-light);
+      border-radius: 0 6px 6px 0;
+      padding: 8px 11px;
+      margin-bottom: 9px;
+      font-size: 9.5pt;
+      color: var(--amber);
+      line-height: 1.55;
+    }
+
+    .il {
+      border-left: 3px solid #378ADD;
+      background: var(--blue-light);
+      border-radius: 0 6px 6px 0;
+      padding: 8px 11px;
+      margin-bottom: 9px;
+      font-size: 9.5pt;
+      color: var(--blue);
+      line-height: 1.55;
+    }
+
+    .pl {
+      border-left: 3px solid var(--purple-mid);
+      background: var(--purple-light);
+      border-radius: 0 6px 6px 0;
+      padding: 8px 11px;
+      margin-bottom: 9px;
+      font-size: 9.5pt;
+      color: var(--purple);
+      line-height: 1.55;
+    }
+
+    .code-block {
+      background: var(--gray-light);
+      border: 0.75px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-family: var(--font-mono);
+      font-size: 8.5pt;
+      line-height: 1.6;
+      white-space: pre;
+      margin-bottom: 9px;
+      color: var(--text);
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 7px;
+      font-size: 9.5pt;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #9FE1CB;
+      color: #085041;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8.5pt;
+      font-weight: 600;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .step-num-p {
+      background: #CECBF6;
+      color: var(--purple);
+    }
+
+    .step-num-b {
+      background: #B5D4F4;
+      color: var(--blue);
+    }
+
+    .step-num-a {
+      background: #F5D9A8;
+      color: var(--amber);
+    }
+
+    .qa-block {
+      margin-bottom: 9px;
+    }
+
+    .qa-q {
+      font-size: 9.5pt;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .qa-a {
+      font-size: 9.5pt;
+      color: var(--text-muted);
+      line-height: 1.55;
+      padding-left: 10px;
+      border-left: 2px solid var(--border);
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 8pt;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 3px;
+      margin-right: 3px;
+    }
+
+    .tg {
+      background: var(--green-light);
+      color: var(--green);
+    }
+
+    .tr {
+      background: var(--red-light);
+      color: var(--red);
+    }
+
+    .tb {
+      background: var(--blue-light);
+      color: var(--blue);
+    }
+
+    .tt {
+      background: var(--teal-light);
+      color: var(--teal);
+    }
+
+    .tp {
+      background: var(--purple-light);
+      color: var(--purple);
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9pt;
+      margin-bottom: 9px;
+    }
+
+    .data-table th {
+      background: var(--gray-light);
+      font-weight: 600;
+      padding: 6px 10px;
+      border: 0.75px solid var(--border);
+      text-align: left;
+      color: var(--text);
+    }
+
+    .data-table td {
+      padding: 5px 10px;
+      border: 0.75px solid var(--border);
+      color: var(--text-muted);
+      line-height: 1.45;
+      vertical-align: top;
+    }
+
+    .data-table tr:nth-child(even) td {
+      background: #fafaf8;
+    }
+
+    .phase-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .phase-box {
+      flex: 1;
+      min-width: 80px;
+      border-radius: 7px;
+      padding: 9px 8px;
+      text-align: center;
+    }
+
+    .phase-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      color: var(--text-muted);
+      font-size: 14pt;
+    }
+
+    .phase-title {
+      font-size: 10pt;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+
+    .phase-desc {
+      font-size: 8pt;
+      line-height: 1.4;
+    }
+
+    .ph-t {
+      background: var(--teal-light);
+    }
+
+    .ph-t .phase-title {
+      color: var(--teal);
+    }
+
+    .ph-t .phase-desc {
+      color: var(--teal);
+    }
+
+    .ph-p {
+      background: var(--purple-light);
+    }
+
+    .ph-p .phase-title {
+      color: var(--purple);
+    }
+
+    .ph-p .phase-desc {
+      color: var(--purple-mid);
+    }
+
+    .ph-a {
+      background: var(--amber-light);
+    }
+
+    .ph-a .phase-title {
+      color: var(--amber);
+    }
+
+    .ph-a .phase-desc {
+      color: var(--amber);
+    }
+
+    .ph-b {
+      background: var(--blue-light);
+    }
+
+    .ph-b .phase-title {
+      color: var(--blue);
+    }
+
+    .ph-b .phase-desc {
+      color: var(--blue-mid);
+    }
+
+    .divider {
+      height: 0.75px;
+      background: var(--border);
+      margin: 14px 0;
+    }
+
+    @media print {
+
+      html,
+      body {
+        background: #fff;
+      }
+
+      .page {
+        width: 100%;
+        padding: 14mm 13mm;
+      }
+
+      .section {
+        page-break-inside: avoid;
+      }
+
+      @page {
+        size: A4;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- ═══ HEADER ═══ -->
+    <div class="lecture-header">
+      <div class="lecture-title">Lecture 5 &mdash; MapReduce &amp; Data Mining</div>
+      <div class="lecture-sub">CS4225 / CS5425 &nbsp;&middot;&nbsp; Big Data Systems for Data Science
+        &nbsp;&middot;&nbsp; National University of Singapore</div>
+    </div>
+
+    <!-- ═══ OVERVIEW ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="badge bt">Overview</span> Topics Covered</div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Part 1 &middot; Similarity Search</div>
+          <div class="card-body">Distance and similarity measures, the all-pairs similarity problem, shingling, MinHash
+            signatures, multiple hash functions, and MapReduce implementation.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Part 2 &middot; Clustering</div>
+          <div class="card-body">K-Means algorithm, two MapReduce implementations (v1 and v2 with in-mapper combiner),
+            and disk I/O complexity analysis.</div>
+        </div>
+      </div>
+      <div class="hl"><strong>Key theme:</strong> MapReduce is powerful for data mining at scale, but <strong>iterative
+          algorithms</strong> (like K-Means) expose a fundamental bottleneck — each iteration requires a full disk
+        read/write cycle through HDFS. This motivates later systems like Spark.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══ PART 1: SIMILARITY SEARCH ═══ -->
+
+    <div class="section">
+      <div class="section-title"><span class="badge bt">1</span> Similarity as a Common Subroutine</div>
+      <p>Many large-scale data problems reduce to finding <strong>"similar" objects</strong> — items that are close
+        according to some measure. This comes up repeatedly across data mining.</p>
+      <div class="grid3">
+        <div class="card">
+          <div class="card-title">Duplicate Detection</div>
+          <div class="card-body">Documents with similar words — identify near-duplicate web pages, mirror sites, or
+            plagiarised articles so they aren't shown twice in search results.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recommendation</div>
+          <div class="card-body">Customers who purchased similar products — if two users bought the same things,
+            recommend each other's remaining purchases.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">User Grouping</div>
+          <div class="card-body">Users who visited similar websites — group users with similar browsing patterns for
+            targeted advertising or content personalisation.</div>
+        </div>
+      </div>
+      <div class="il">All of these problems share the same structure: <em>given a large collection of objects, find all
+          pairs that are "close" under some similarity measure</em>. The challenge is doing this efficiently when the
+        collection is huge.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge bt">2</span> Distance &amp; Similarity Measures</div>
+      <p>To define "near neighbours", we need a <strong>distance function</strong> <code>d(x, y)</code>. Lower distance
+        = higher similarity.</p>
+      <table class="data-table">
+        <tr>
+          <th>Metric</th>
+          <th>Formula</th>
+          <th>Key Property</th>
+          <th>Best for</th>
+        </tr>
+        <tr>
+          <td><strong>Euclidean distance</strong></td>
+          <td><code>d(x,y) = &radic;&sum;(x&#x1D62; &minus; y&#x1D62;)&sup2;</code></td>
+          <td>Straight-line distance in space</td>
+          <td>Points in continuous space (e.g. coordinates)</td>
+        </tr>
+        <tr>
+          <td><strong>Manhattan distance</strong></td>
+          <td><code>d(x,y) = &sum;|x&#x1D62; &minus; y&#x1D62;|</code></td>
+          <td>Grid/taxicab distance — sum of absolute differences</td>
+          <td>Grid-like data; robust to outliers in any one dimension</td>
+        </tr>
+        <tr>
+          <td><strong>Cosine similarity</strong></td>
+          <td><code>sim(a,b) = (a&middot;b) / (|a||b|)</code></td>
+          <td>Only considers <em>direction</em>, not magnitude. Scaling a or b doesn't change it.</td>
+          <td>Text documents as word-count vectors; angle between vectors</td>
+        </tr>
+        <tr>
+          <td><strong>Jaccard similarity</strong></td>
+          <td><code>sim(A,B) = |A&cap;B| / |A&cup;B|</code></td>
+          <td>Fraction of shared elements. Jaccard distance = 1 &minus; Jaccard sim.</td>
+          <td>Sets: documents as shingle sets, user item-sets</td>
+        </tr>
+      </table>
+      <div class="wl"><strong>Jaccard example:</strong> A = {&#x25A0;, &#x25CF;}, B = {&#x25CF;, &#x25B2;}. Intersection
+        = {&#x25CF;} (1 item), Union = {&#x25A0;, &#x25CF;, &#x25B2;} (3 items). Jaccard sim = 1/3. Jaccard distance = 1
+        &minus; 1/3 = 2/3.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge bp">3</span> The Similar Documents Problem</div>
+      <p>Given N documents, we want to find all pairs with Jaccard similarity above some threshold (e.g. near-duplicate
+        web pages).</p>
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Why naïve pairwise comparison doesn't scale</div>
+        <div class="card-body">With N = 1 million documents, naïve all-pairs comparison requires:<br><br>
+          <strong>N(N &minus; 1) / 2 &asymp; 5 &times; 10<sup>11</sup> comparisons</strong><br><br>
+          Even at 1 million comparisons per second, this would take over 5 days. We need a smarter approach.
+        </div>
+      </div>
+      <p>The solution is a two-step pipeline:</p>
+      <div class="phase-row">
+        <div class="phase-box ph-t">
+          <div class="phase-title">Step 1: Shingling</div>
+          <div class="phase-desc">Convert each document into a <em>set</em> of short overlapping phrases</div>
+        </div>
+        <div class="phase-arrow">&#x2192;</div>
+        <div class="phase-box ph-p">
+          <div class="phase-title">Step 2: MinHash</div>
+          <div class="phase-desc">Compress each set into a short <em>signature</em>, preserving similarity</div>
+        </div>
+        <div class="phase-arrow">&#x2192;</div>
+        <div class="phase-box ph-b">
+          <div class="phase-title">Candidate Pairs</div>
+          <div class="phase-desc">Documents with the same signature are <em>candidate pairs</em> for near-duplication
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge bp">4</span> Step 1 — Shingling</div>
+      <p>A <strong>k-shingle</strong> (also called a <strong>k-gram</strong>) is a sequence of <code>k</code>
+        consecutive tokens that appears in a document. Each document is represented as the <em>set</em> of all its
+        k-shingles.</p>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Example: k = 2, document D1 = "the cat is glad"</div>
+        <div class="card-body">
+          Sliding a window of size 2 across the tokens:<br><br>
+          <code>S(D1) = { "the cat",  "cat is",  "is glad" }</code><br><br>
+          Each pair of adjacent words becomes one shingle. The document is now just a <em>set</em> of these pairs — and
+          we can use Jaccard similarity to compare sets.
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">Why sets?</div>
+          <div class="card-body">Representing documents as sets of shingles captures the <em>content</em> of the
+            document. Two documents with many shared phrases (shingles) will have high Jaccard similarity — which is
+            what we want for detecting near-duplicates.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Choosing k</div>
+          <div class="card-body">Larger k → fewer false positives (rarer shingles), but more sensitive to small
+            differences. Typical values: k = 5–10 for web pages. Too small (k=1) means most documents share common
+            words; too large makes shingles unique to each doc.</div>
+        </div>
+      </div>
+
+      <p>Formally, the similarity between two documents D1 and D2 is measured as:</p>
+      <div class="code-block">sim(D1, D2) = |S(D1) &cap; S(D2)| / |S(D1) &cup; S(D2)| (Jaccard similarity of their
+        shingle sets)</div>
+
+      <div class="il">Shingle sets can be represented as a <strong>binary matrix</strong>: rows = all shingles
+        (universe), columns = documents. A 1 in cell (shingle, doc) means that shingle appears in that document. Jaccard
+        similarity = (# rows where both columns are 1) / (# rows where at least one column is 1).</div>
+
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge bp">5</span> Step 2 — MinHash: Overview</div>
+      <p>With large shingle sets, computing Jaccard similarity directly is still expensive.</p>
+      <p>e.g. N = 1 million documents. N(N-1)/2 ≈ 5*10<sup>11</sup> comparisons (too slow!) </p>
+      <strong>MinHash</strong> compresses each shingle set into a short fixed-length <strong>signature</strong> such
+      that similarity is preserved: highly similar documents tend to produce the same signature.</p>
+      <p>h(C) should be small enough that the signature fits in RAM</p>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">MinHash steps for one hash function h</div>
+        <div class="card-body">
+          Given a document's shingle set, e.g. <code>{ "the cat", "cat is", "is glad" }</code>:<br><br>
+          <strong>1.</strong> Apply hash function h to each shingle to get an integer:<br>
+          &nbsp;&nbsp;&nbsp;<code>h("the cat") = 12 &nbsp;&nbsp; h("cat is") = 74 &nbsp;&nbsp; h("is glad") = 48</code><br><br>
+          <strong>2.</strong> The MinHash signature is the <em>minimum</em> hash value:<br>
+          &nbsp;&nbsp;&nbsp;<code>MinHash(D) = min(12, 74, 48) = 12</code><br><br>
+          This single number is the document's "signature" for hash function h.
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Example: comparing two similar documents</div>
+        <div class="card-body">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+              <strong>Document 1:</strong><br>
+              <code>{ "the cat", "cat is", "is glad" }</code><br>
+              Hashes: 12, 74, 48<br>
+              <strong>MinHash = 12</strong>
+            </div>
+            <div>
+              <strong>Document 2:</strong><br>
+              <code>{ "no cat", "cat is", "is glad" }</code><br>
+              Hashes: 32, 12, 24<br>
+              <strong>MinHash = 12</strong>
+            </div>
+          </div><br>
+          Same MinHash (12) → these documents are a candidate near-duplicate pair. ✓
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Goal</div>
+        <div class="card-body">
+          Find a hash function h(·) such that:
+          <ol style="padding-left:16px; margin-top:6px; line-height:1.8;">
+            <li>If sim(S(D1), S(D2)) is high, then with high probability, h(S(D1)) = h(S(D2))</li>
+            <li>If sim(S(D1), S(D2)) is low, then with high probability, h(S(D1)) ≠ h(S(D2))</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge bp">6</span> Multiple Hash Functions &amp; Candidate Pairs</div>
+      <p>A single hash function gives a noisy estimate. In practice, we use <strong>N hash functions</strong> (e.g. N =
+        100) to generate N MinHash values per document, forming a <strong>signature vector</strong>.</p>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Defining candidate pairs</div>
+        <div class="card-body">
+          Two documents are a <strong>candidate pair</strong> if they match on at least <em>t</em> out of N hash
+          functions (for some threshold t, e.g. t = 50 out of 100).<br><br>
+          The more hash functions that agree, the more confident we are that the documents are genuinely similar.
+          Candidate pairs can then be verified by computing the exact Jaccard similarity — but the number of pairs to
+          verify is far smaller than N(N-1)/2.
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Worked example: 3 hash functions, threshold = 2 matches</div>
+        <div class="card-body">
+          <table class="data-table" style="margin-bottom:8px;">
+            <tr>
+              <th>Document</th>
+              <th>H<sub>1</sub></th>
+              <th>H<sub>2</sub></th>
+              <th>H<sub>3</sub></th>
+            </tr>
+            <tr>
+              <td>D1</td>
+              <td>10</td>
+              <td>20</td>
+              <td>23</td>
+            </tr>
+            <tr>
+              <td>D2</td>
+              <td>10</td>
+              <td>25</td>
+              <td>23</td>
+            </tr>
+            <tr>
+              <td>D3</td>
+              <td>32</td>
+              <td>25</td>
+              <td>15</td>
+            </tr>
+            <tr>
+              <td>D4</td>
+              <td>32</td>
+              <td>20</td>
+              <td>25</td>
+            </tr>
+          </table>
+          <strong>(D1, D2):</strong> match on H<sub>1</sub> and H<sub>3</sub> → <span class="tag tg">candidate
+            pair</span><br>
+          <strong>(D3, D4):</strong> match only on H<sub>1</sub> → <span class="tag tr">not a candidate</span> (only 1
+          match, need 2)<br>
+          <strong>(D1, D3):</strong> no matches → <span class="tag tr">not a candidate</span>
+        </div>
+      </div>
+
+      <div class="wl"><strong>Optional extension — Locality Sensitive Hashing (LSH):</strong> A more advanced technique
+        that organises signatures into bands and rows to further narrow down candidate pairs. Not required for this
+        course, but widely used in practice.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge bp">7</span> MapReduce Implementation — Similarity Search</div>
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">How it works</div>
+        <div class="card-body">
+          <strong>Map:</strong><br>
+          &bull; Read each document and extract its shingles (sliding window of k tokens).<br>
+          &bull; Hash each shingle using the hash function(s) and take the minimum hash value as the MinHash
+          signature.<br>
+          &bull; Emit <code>(signature, document_id)</code>.<br><br>
+          <strong>Reduce:</strong><br>
+          &bull; Receive all documents that share a given MinHash signature.<br>
+          &bull; Generate all candidate pairs from these documents.<br>
+          &bull; (Optional) Compare each candidate pair directly to verify actual similarity.
+        </div>
+      </div>
+      <div class="code-block"><span style="color:#888">// MapReduce: Similarity Search via MinHash</span>
+        <span style="color:#1D9E75">map</span>(doc_id, document):
+        shingles = <span style="color:#1D9E75">extract_shingles</span>(document, k)
+        sig = <span style="color:#1D9E75">min</span>(<span style="color:#1D9E75">hash</span>(s) <span
+          style="color:#534AB7">for</span> s <span style="color:#534AB7">in</span> shingles)
+        <span style="color:#1D9E75">emit</span>(sig, doc_id)
+
+        <span style="color:#1D9E75">reduce</span>(sig, [doc_id_1, doc_id_2, ...]):
+        <span style="color:#888">// all docs sharing this signature are candidate pairs</span>
+        <span style="color:#534AB7">for each</span> pair (di, dj) <span style="color:#534AB7">in</span> candidate_pairs:
+        <span style="color:#1D9E75">emit</span>(di, dj)
+      </div>
+      <div class="hl"><strong>Why this is efficient:</strong> The map phase runs in parallel over all documents with no
+        communication. The shuffle groups documents by signature — only documents with matching signatures ever meet at
+        a reducer. This drastically reduces the number of pairs to consider.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══ PART 2: CLUSTERING ═══ -->
+
+    <div class="section">
+      <div class="section-title"><span class="badge ba">8</span> Goal of Clustering</div>
+      <p><strong>Clustering</strong> is an unsupervised learning task: given unlabelled data points, group them so that
+        points within a group are similar to each other, and points in different groups are dissimilar.</p>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-title">High intra-cluster similarity</div>
+          <div class="card-body">Points inside the same cluster should be close to each other — they share common
+            properties that make them "belong" together.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Low inter-cluster similarity</div>
+          <div class="card-body">Points in different clusters should be far apart — the clusters should be clearly
+            separated and distinct from each other.</div>
+        </div>
+      </div>
+      <p><strong>Applications</strong></p>
+      <div class="grid3">
+        <div class="card">
+          <div class="card-title">Microbiology</div>
+          <div class="card-body">Group related genes, proteins, or organisms based on sequence similarity or expression
+            patterns.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recommendation &amp; Social Networks</div>
+          <div class="card-body">Find groups of users with similar tastes for collaborative filtering or community
+            detection.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Search &amp; Information Retrieval</div>
+          <div class="card-body">Group similar search results, news articles, or documents by topic for better
+            organisation.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge ba">9</span> K-Means Algorithm</div>
+      <p><strong>K-Means</strong> is the most common clustering algorithm. You specify K (the number of clusters)
+        upfront, and the algorithm iteratively refines K cluster centres until convergence.</p>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Algorithm steps</div>
+        <div class="card-body">
+          <strong>Initialisation:</strong> Pick K random points as initial cluster centres (also called
+          centroids).<br><br>
+          <strong>Repeat until no assignments change:</strong>
+          <ol style="padding-left:16px; margin-top:6px; line-height:1.8;">
+            <li><strong>Assignment step:</strong> Assign each data point to the nearest cluster centre (using Euclidean
+              distance).</li>
+            <li><strong>Update step:</strong> Move each cluster centre to the <em>mean (average)</em> position of all
+              points assigned to it.</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- K-Means Iteration Diagram -->
+      <div
+        style="border:0.75px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:12px; background:#fafaf8;">
+        <div
+          style="font-size:8.5pt; font-weight:600; color:var(--text-muted); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
+          K-Means — Iterative Steps (K = 2 clusters)</div>
+        <svg viewBox="0 0 680 306" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
+          <defs>
+            <marker id="km_g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#888" />
+            </marker>
+            <marker id="km_b" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#185FA5" />
+            </marker>
+            <marker id="km_t" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#1D9E75" />
+            </marker>
+          </defs>
+
+          <!-- ══ PANEL 1: INITIALISE (top-left) ══ -->
+          <rect x="14" y="14" width="302" height="114" rx="7" fill="#F1EFE8" stroke="#D3D1C7" stroke-width="1.2" />
+          <text x="165" y="33" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="9.5" font-weight="700"
+            fill="#444441">① Initialise</text>
+          <text x="165" y="47" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">Pick
+            K = 2 random cluster centres</text>
+          <!-- Data points — all grey (unassigned) -->
+          <circle cx="64" cy="88" r="5.5" fill="#D3D1C7" />
+          <circle cx="84" cy="104" r="5.5" fill="#D3D1C7" />
+          <circle cx="72" cy="72" r="5.5" fill="#D3D1C7" />
+          <circle cx="52" cy="98" r="5.5" fill="#D3D1C7" />
+          <circle cx="234" cy="82" r="5.5" fill="#D3D1C7" />
+          <circle cx="254" cy="100" r="5.5" fill="#D3D1C7" />
+          <circle cx="242" cy="66" r="5.5" fill="#D3D1C7" />
+          <circle cx="270" cy="90" r="5.5" fill="#D3D1C7" />
+          <!-- Cluster centres — diamonds, placed randomly (not at cluster means) -->
+          <polygon points="152,107 161,116 152,125 143,116" fill="#185FA5" />
+          <polygon points="178,73 187,82 178,91 169,82" fill="#1D9E75" />
+          <!-- Labels -->
+          <text x="152" y="140" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="6.5"
+            fill="#185FA5">centre A</text>
+          <text x="205" y="92" text-anchor="start" font-family="DM Sans, sans-serif" font-size="6.5"
+            fill="#1D9E75">centre B</text>
+
+          <!-- ── Arrow ①→② ── -->
+          <line x1="318" y1="71" x2="362" y2="71" stroke="#888" stroke-width="1.5" marker-end="url(#km_g)" />
+
+          <!-- ══ PANEL 2: ASSIGN (top-right) ══ -->
+          <rect x="364" y="14" width="302" height="114" rx="7" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.2" />
+          <text x="515" y="33" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="9.5" font-weight="700"
+            fill="#0C447C">② Assign</text>
+          <text x="515" y="47" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">Each
+            point → nearest centre (Euclidean distance)</text>
+          <!-- Blue cluster (left group, closer to centre A) -->
+          <circle cx="414" cy="88" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="434" cy="104" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="422" cy="72" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="402" cy="98" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <!-- Green cluster (right group, closer to centre B) -->
+          <circle cx="584" cy="82" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="604" cy="100" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="592" cy="66" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="620" cy="90" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <!-- Centres same positions as Init -->
+          <polygon points="502,107 511,116 502,125 493,116" fill="#185FA5" />
+          <polygon points="528,73 537,82 528,91 519,82" fill="#1D9E75" />
+
+          <!-- ── Arrow ②→③ ── -->
+          <line x1="515" y1="130" x2="515" y2="152" stroke="#888" stroke-width="1.5" marker-end="url(#km_g)" />
+
+          <!-- ══ PANEL 3: UPDATE (bottom-right) ══ -->
+          <rect x="364" y="154" width="302" height="114" rx="7" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.2" />
+          <text x="515" y="173" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="9.5" font-weight="700"
+            fill="#0F6E56">③ Update</text>
+          <text x="515" y="187" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">Move
+            each centre to mean of its assigned points</text>
+          <!-- Same coloured points -->
+          <circle cx="414" cy="228" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="434" cy="244" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="422" cy="212" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="402" cy="238" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="584" cy="222" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="604" cy="240" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="592" cy="206" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="620" cy="230" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <!-- Old centre positions (hollow dashed circles) -->
+          <circle cx="502" cy="256" r="9" fill="none" stroke="#185FA5" stroke-width="1" stroke-dasharray="3,2" />
+          <circle cx="528" cy="213" r="9" fill="none" stroke="#1D9E75" stroke-width="1" stroke-dasharray="3,2" />
+          <!-- Arrows: old → new centre positions -->
+          <!-- Blue centre moves left: (502,256) → (418,231) -->
+          <line x1="496" y1="250" x2="427" y2="234" stroke="#185FA5" stroke-width="1.4" marker-end="url(#km_b)" />
+          <!-- Green centre moves right: (528,213) → (600,225) -->
+          <line x1="534" y1="216" x2="592" y2="222" stroke="#1D9E75" stroke-width="1.4" marker-end="url(#km_t)" />
+          <!-- New centre positions (solid diamonds at means) -->
+          <!-- Blue mean: x=(414+434+422+402)/4=418, y=(228+244+212+238)/4=230.5≈231 -->
+          <polygon points="418,222 427,231 418,240 409,231" fill="#185FA5" />
+          <!-- Green mean: x=(584+604+592+620)/4=600, y=(222+240+206+230)/4=224.5≈225 -->
+          <polygon points="600,216 609,225 600,234 591,225" fill="#1D9E75" />
+          <!-- Labels -->
+          <text x="398" y="255" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="6.5" fill="#888">old
+            A</text>
+          <text x="522" y="210" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="6.5" fill="#888">old
+            B</text>
+
+          <!-- ── Arrow ③→④ (converged path) ── -->
+          <line x1="362" y1="211" x2="318" y2="211" stroke="#888" stroke-width="1.5" marker-end="url(#km_g)" />
+          <text x="340" y="207" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="6.5"
+            fill="#888">stable</text>
+
+          <!-- ── Repeat arrow ③→② (right side, dashed) ── -->
+          <path d="M 666,220 L 674,220 L 674,70 L 666,70" fill="none" stroke="#888" stroke-width="1.2"
+            stroke-dasharray="5,3" marker-end="url(#km_g)" />
+          <text x="676" y="148" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="7" fill="#888"
+            transform="rotate(90 676 148)">if assignments changed, repeat</text>
+
+          <!-- ══ PANEL 4: CONVERGED (bottom-left) ══ -->
+          <rect x="14" y="154" width="302" height="114" rx="7" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.2" />
+          <text x="165" y="173" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="9.5" font-weight="700"
+            fill="#0F6E56">④ Converged</text>
+          <text x="165" y="187" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">No
+            assignments changed — algorithm stops</text>
+          <!-- Same points, stable colours -->
+          <circle cx="64" cy="228" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="84" cy="244" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="72" cy="212" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="52" cy="238" r="5.5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1.3" />
+          <circle cx="234" cy="222" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="254" cy="240" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="242" cy="206" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <circle cx="270" cy="230" r="5.5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1.3" />
+          <!-- Final centres at means -->
+          <!-- Blue mean: x=(64+84+72+52)/4=68, y=(228+244+212+238)/4=230.5≈231 -->
+          <polygon points="68,222 77,231 68,240 59,231" fill="#185FA5" />
+          <!-- Green mean: x=(234+254+242+270)/4=250, y=(222+240+206+230)/4=224.5≈225 -->
+          <polygon points="250,216 259,225 250,234 241,225" fill="#1D9E75" />
+
+          <!-- ── Legend ── -->
+          <rect x="14" y="280" width="652" height="22" rx="5" fill="#F9F8F5" stroke="#D3D1C7" stroke-width="0.75" />
+          <circle cx="30" cy="291" r="5" fill="#D3D1C7" />
+          <text x="39" cy="291" y="295" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">unassigned</text>
+          <circle cx="116" cy="291" r="5" fill="#A8C9E8" stroke="#185FA5" stroke-width="1" />
+          <text x="125" y="295" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">cluster A</text>
+          <circle cx="191" cy="291" r="5" fill="#9FE1CB" stroke="#1D9E75" stroke-width="1" />
+          <text x="200" y="295" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">cluster B</text>
+          <polygon points="272,287 279,291 272,295 265,291" fill="#444441" />
+          <text x="283" y="295" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">centre (diamond)</text>
+          <circle cx="390" cy="291" r="6" fill="none" stroke="#444441" stroke-width="1" stroke-dasharray="2,1.5" />
+          <text x="400" y="295" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">old centre
+            position</text>
+          <line x1="500" y1="291" x2="520" y2="291" stroke="#185FA5" stroke-width="1.5" marker-end="url(#km_b)" />
+          <text x="524" y="295" font-family="DM Sans, sans-serif" font-size="7" fill="#5F5E5A">centre movement</text>
+        </svg>
+      </div>
+
+      <div class="wl"><strong>Limitation of K-Means:</strong> The result can depend on the random initialisation.
+        Different starting centres can produce different final clusters. Running K-Means multiple times and picking the
+        best result (lowest total within-cluster distance) is common practice.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge ba">10</span> MapReduce K-Means — Version 1</div>
+      <p>Each MapReduce job performs <strong>one iteration</strong> of K-Means. The algorithm requires as many jobs as
+        there are iterations until convergence.</p>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">How it works</div>
+        <div class="card-body">
+          <strong>Configure():</strong> Read the current cluster centre positions from a file (stored in HDFS between
+          iterations).<br><br>
+          <strong>Map:</strong> For each data point, compute its distance to every cluster centre (loaded in Configure),
+          and emit <code>(cluster_id, point)</code> where <code>cluster_id</code> is the nearest centre.<br><br>
+          <strong>Reduce:</strong> For each cluster, receive all points assigned to it. Compute the new cluster centre
+          as the mean (average) of those points. Write the new centre positions back to HDFS.
+          <br><br>
+          <div>Map = “Which cluster does this point belong to?”</div>
+          <div>Reduce = “What’s the new average of this cluster?”</div>
+          <div>Loop = “Repeat until stable”</div>
+        </div>
+      </div>
+
+      <div class="code-block"><span style="color:#888">// MapReduce K-Means v1 — one iteration</span>
+        <span style="color:#1D9E75">configure</span>(): centers = <span
+          style="color:#1D9E75">load_centers_from_file</span>() <span style="color:#888">// broadcast to all
+          mappers</span>
+
+        <span style="color:#1D9E75">map</span>(point_id, point):
+        cluster_id = <span style="color:#1D9E75">argmin</span>(<span style="color:#1D9E75">distance</span>(point, c)
+        <span style="color:#534AB7">for</span> c <span style="color:#534AB7">in</span> centers)
+        <span style="color:#1D9E75">emit</span>(cluster_id, point)
+
+        <span style="color:#1D9E75">reduce</span>(cluster_id, [point_1, point_2, ...]):
+        new_center = <span style="color:#1D9E75">mean</span>([point_1, point_2, ...])
+        <span style="color:#1D9E75">emit</span>(cluster_id, new_center)
+      </div>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title"><span class="tag tr">Problem</span> High network traffic</div>
+        <div class="card-body">
+          In v1, every single data point is shuffled from mapper to reducer. With n points each of dimensionality d,
+          running for m iterations, the total disk I/O exchanged between mappers and reducers is:<br><br>
+          <strong>O(n &times; m &times; d)</strong><br><br>
+          This is proportional to the dataset size — shuffling the entire dataset on every iteration is extremely
+          expensive.
+        </div>
+      </div>
+
+      <div class="il"><strong>Exam question:</strong> Why is O(nmd) the answer for v1?<br>
+        Each of the n points is a d-dimensional vector emitted by the mapper. This happens once per iteration (m
+        iterations total). So total data transferred = n &times; d &times; m = O(nmd).</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge ba">11</span> MapReduce K-Means — Version 2 (In-Mapper Combiner)
+      </div>
+      <p>Version 2 uses an <strong>in-mapper combiner</strong> to partially aggregate points <em>within the mapper</em>
+        before the shuffle, dramatically reducing network traffic.</p>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Key change: aggregate locally first</div>
+        <div class="card-body">
+          Instead of emitting every individual point, each mapper maintains a local data structure H that tracks:
+          <ul style="padding-left:16px; margin-top:6px; line-height:1.8;">
+            <li>The <strong>sum</strong> of all points assigned to each cluster</li>
+            <li>The <strong>count</strong> of points assigned to each cluster</li>
+          </ul>
+          At the end of the map phase, the mapper emits just <strong>k partial sums</strong> (one per cluster) instead
+          of n individual points.
+        </div>
+      </div>
+
+      <div class="code-block"><span style="color:#888">// MapReduce K-Means v2 — in-mapper combiner</span>
+        <span style="color:#1D9E75">configure</span>():
+        centers = <span style="color:#1D9E75">load_centers_from_file</span>()
+        H = {} <span style="color:#888">// local accumulator: cluster_id → (sum, count)</span>
+
+        <span style="color:#1D9E75">map</span>(point_id, point):
+        nearest = <span style="color:#1D9E75">argmin</span>(<span style="color:#1D9E75">distance</span>(point, c) <span
+          style="color:#534AB7">for</span> c <span style="color:#534AB7">in</span> centers)
+        H[nearest].sum += point
+        H[nearest].count += 1
+
+        <span style="color:#1D9E75">cleanup</span>(): <span style="color:#888">// emit once per cluster, not once per
+          point</span>
+        <span style="color:#534AB7">for</span> cluster_id <span style="color:#534AB7">in</span> H:
+        <span style="color:#1D9E75">emit</span>(cluster_id, (H[cluster_id].sum, H[cluster_id].count))
+
+        <span style="color:#1D9E75">reduce</span>(cluster_id, [(sum_1, count_1), (sum_2, count_2), ...]):
+        new_center = <span style="color:#1D9E75">sum</span>(all sums) / <span style="color:#1D9E75">sum</span>(all counts)
+        <span style="color:#1D9E75">emit</span>(cluster_id, new_center)
+      </div>
+
+      <div class="card">
+        <div class="card-title">Disk I/O with v2 (assuming 1 map task)</div>
+        <div class="card-body">
+          Each mapper emits <em>k</em> partial sums, each of dimensionality d. With m iterations:<br><br>
+          <strong>O(k &times; m &times; d)</strong><br><br>
+          Since k (number of clusters, e.g. k = 10) is typically <em>much smaller</em> than n (number of points, e.g. n
+          = 10 million), this is a massive reduction. We no longer pay per-point network cost — only per-cluster.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge ba">12</span> v1 vs v2 — Example Comparison</div>
+      <table class="data-table">
+        <tr>
+          <th>Step</th>
+          <th>Version 1 (Naive)</th>
+          <th>Version 2 (In-Mapper Combiner)</th>
+        </tr>
+        <tr>
+          <td><b>Input (2 Mappers)</b></td>
+          <td colspan="2">
+            Mapper A points: (2,2), (4,4), (6,6)<br>
+            Mapper B points: (3,3), (5,5)<br>
+            All belong to Cluster 1
+          </td>
+        </tr>
+        <tr>
+          <td><b>Map Output</b></td>
+          <td>
+            Mapper A:<br>
+            emit(1, (2,2))<br>
+            emit(1, (4,4))<br>
+            emit(1, (6,6))<br><br>
+
+            Mapper B:<br>
+            emit(1, (3,3))<br>
+            emit(1, (5,5))
+          </td>
+          <td>
+            Mapper A:<br>
+            sum = (12,12), count = 3<br>
+            emit(1, ((12,12), 3))<br><br>
+
+            Mapper B:<br>
+            sum = (8,8), count = 2<br>
+            emit(1, ((8,8), 2))
+          </td>
+        </tr>
+
+        <tr>
+          <td><b>Data Sent Over Network</b></td>
+          <td>
+            5 full points:<br>
+            (2,2), (4,4), (6,6),<br>
+            (3,3), (5,5)
+          </td>
+          <td>
+            2 aggregated records:<br>
+            ((12,12), 3)<br>
+            ((8,8), 2)
+          </td>
+        </tr>
+
+        <tr>
+          <td><b>Reducer Input</b></td>
+          <td>
+            [(2,2), (4,4), (6,6),<br>
+            (3,3), (5,5)]
+          </td>
+          <td>
+            [((12,12), 3),<br>
+            ((8,8), 2)]
+          </td>
+        </tr>
+
+        <tr>
+          <td><b>Reducer Computation</b></td>
+          <td>
+            mean = ((2+4+6+3+5)/5,<br>
+            (2+4+6+3+5)/5)<br>
+            = (4,4)
+          </td>
+          <td>
+            total_sum = (12+8, 12+8)<br>
+            = (20,20)<br><br>
+
+            total_count = 3+2 = 5<br><br>
+
+            mean = (20,20)/5
+            = (4,4)
+          </td>
+        </tr>
+
+        <tr>
+          <td><b>Key Insight</b></td>
+          <td>
+            Sends every point individually
+          </td>
+          <td>
+            Sends only (sum, count) per mapper
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge ba">13</span> v1 vs v2 — Complexity Comparison</div>
+      <table class="data-table">
+        <tr>
+          <th>Property</th>
+          <th>K-Means v1</th>
+          <th>K-Means v2 (in-mapper combiner)</th>
+        </tr>
+        <tr>
+          <td>What mapper emits</td>
+          <td>One record per point → n records per task</td>
+          <td>One partial sum per cluster → k records per task</td>
+        </tr>
+        <tr>
+          <td>Shuffle volume per iteration</td>
+          <td><strong>O(nd)</strong> — proportional to dataset size</td>
+          <td><strong>O(kd)</strong> — proportional to number of clusters</td>
+        </tr>
+        <tr>
+          <td>Total I/O (m iterations)</td>
+          <td><strong>O(nmd)</strong></td>
+          <td><strong>O(kmd)</strong></td>
+        </tr>
+        <tr>
+          <td>Memory requirement</td>
+          <td>Just the k cluster centres</td>
+          <td>k partial sums + k centres (slightly more)</td>
+        </tr>
+        <tr>
+          <td>Correctness</td>
+          <td>Exact ✓</td>
+          <td>Exact ✓ (partial sums combined correctly in reducer)</td>
+        </tr>
+      </table>
+      <div class="hl"><strong>The bigger picture:</strong> Even v2 still requires a full MapReduce round-trip (HDFS read
+        → map → shuffle → reduce → HDFS write) for every single K-Means iteration. For large k and many iterations, this
+        is very expensive. This is the fundamental limitation of MapReduce for iterative algorithms — each pass through
+        the data involves full disk I/O. Spark solves this by keeping data in memory across iterations.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══ Q&A ═══ -->
+    <div class="section">
+      <div class="section-title"><span class="badge bc">13</span> Exam-Style Q&amp;A</div>
+
+      <div class="qa-block">
+        <div class="qa-q">Q: What is a k-shingle and how is it used for document similarity?</div>
+        <div class="qa-a">A k-shingle (or k-gram) is a sequence of k consecutive tokens (words or characters) from a
+          document. Each document is converted into the <em>set</em> of all its k-shingles. Similarity between documents
+          is then measured as the Jaccard similarity of their shingle sets: |S(D1) ∩ S(D2)| / |S(D1) ∪ S(D2)|.</div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q">Q: Why can't we just compare all document pairs directly?</div>
+        <div class="qa-a">With N documents, there are N(N−1)/2 pairs to compare — approximately 5×10¹¹ comparisons for N
+          = 1 million. This is computationally infeasible. MinHash + candidate pairs reduces the problem dramatically by
+          only comparing documents that share a MinHash signature.</div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q">Q: State the key property of MinHash.</div>
+        <div class="qa-a">Pr[h(C₁) = h(C₂)] = Jaccard-Sim(C₁, C₂). The probability that two documents have the same
+          MinHash value under a randomly chosen hash function exactly equals their Jaccard similarity. This allows us to
+          estimate Jaccard similarity by comparing cheap integer hashes instead of full shingle sets.</div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q">Q: How does cosine similarity differ from Jaccard similarity?</div>
+        <div class="qa-a">Cosine similarity measures the angle between two vectors — it only cares about direction, not
+          magnitude (scaling a vector doesn't change it). It's suited for word-count vectors. Jaccard similarity
+          measures set overlap (|A∩B|/|A∪B|) — it's suited for sparse binary sets like shingle sets.</div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q">Q: What are the two steps of the K-Means algorithm?</div>
+        <div class="qa-a">Initialise K random centres, then repeat: (a) <strong>Assignment</strong> — assign each point
+          to its nearest centre; (b) <strong>Update</strong> — move each centre to the mean of its assigned points. Stop
+          when no assignments change.</div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q">Q: Why is MapReduce K-Means v1's disk I/O O(nmd)?</div>
+        <div class="qa-a">Each of the n points (each d-dimensional) is emitted by a mapper and shuffled to a reducer.
+          This happens once per iteration. Over m iterations: n × d × m = O(nmd). The cost scales with the full dataset
+          size per iteration, making it expensive for large n.</div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q">Q: How does the in-mapper combiner in v2 reduce I/O to O(kmd)?</div>
+        <div class="qa-a">Instead of emitting one record per point, each mapper accumulates partial sums per cluster in
+          a local data structure H. At the end of the map phase it emits k partial sums (one per cluster, each
+          d-dimensional). So the shuffle volume per iteration is k × d, and over m iterations: O(kmd). Since k ≪ n, this
+          is a huge reduction.</div>
+      </div>
+
+      <div class="qa-block">
+        <div class="qa-q">Q: Why is MapReduce not ideal for iterative algorithms like K-Means?</div>
+        <div class="qa-a">Each iteration of K-Means requires a separate MapReduce job. Between jobs, intermediate state
+          must be written to HDFS (disk) and re-read in the next job. This disk round-trip for every iteration is very
+          expensive. Systems like Spark avoid this by keeping data in memory (as RDDs) across iterations.</div>
+      </div>
+    </div>
+
+    <!-- Supplementary divider -->
+  <div style="display: flex; align-items: center; gap: 10px; margin: 22px 0 18px 0;">
+    <div style="flex: 1; border-top: 1.5px solid #854F0B;"></div>
+    <div style="background: var(--amber-light); border: 1px solid var(--amber); border-radius: 20px; padding: 3px 14px; font-size: 8.5pt; font-weight: 600; color: var(--amber); white-space: nowrap; letter-spacing: 0.3px;">SUPPLEMENTARY</div>
+    <div style="flex: 1; border-top: 1.5px solid #854F0B;"></div>
+  </div>
+
+    <div class="section">
+      <div class="section-title"><span class="badge bp">Supplementary</span> Key Property of MinHash</div>
+      <div class="hl"><strong>Fundamental theorem:</strong> The probability that two documents have the same MinHash
+        value equals their Jaccard similarity:<br><br>
+        &nbsp;&nbsp;&nbsp;<strong>Pr[ h(C<sub>1</sub>) = h(C<sub>2</sub>) ] = Jaccard-Sim(C<sub>1</sub>,
+          C<sub>2</sub>)</strong></div>
+
+      <div class="card" style="margin-bottom:9px;">
+        <div class="card-title">Intuition for the proof (not required, but useful)</div>
+        <div class="card-body">
+          Consider the union of all shingles across both documents. Each shingle has an equal probability of having the
+          smallest hash value. The two documents will have the same MinHash <em>only if</em> the shingle with the
+          minimum hash is one that they both share (i.e., in the intersection).<br><br>
+          Therefore: Pr[same MinHash] = (size of intersection) / (size of union) = Jaccard similarity. &#x25A0;
+        </div>
+      </div>
+
+      <div class="il"><strong>Why this is powerful:</strong> MinHash lets us approximate Jaccard similarity between two
+        huge shingle sets by comparing just a single integer — without storing or comparing the full sets. The
+        approximation improves as we use more hash functions.</div>
+    </div>
+
+  </div>
+</body>
+
+</html>

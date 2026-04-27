@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 8 — Spark II: SQL & ML Pipelines | CS4225/CS5425</title>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --teal:        #0F6E56;
+  --teal-light:  #E1F5EE;
+  --teal-mid:    #1D9E75;
+  --purple:      #3C3489;
+  --purple-light:#EEEDFE;
+  --amber:       #854F0B;
+  --amber-light: #FAEEDA;
+  --blue:        #0C447C;
+  --blue-light:  #E6F1FB;
+  --coral:       #712B13;
+  --coral-light: #FAECE7;
+  --red-light:   #FCEBEB;
+  --red:         #791F1F;
+  --green-light: #EAF3DE;
+  --green:       #27500A;
+  --gray:        #444441;
+  --gray-light:  #F1EFE8;
+  --border:      #D3D1C7;
+  --text:        #1a1a1a;
+  --text-muted:  #5F5E5A;
+  --font-body:   'DM Sans', sans-serif;
+  --font-mono:   'JetBrains Mono', monospace;
+}
+
+html, body {
+  background: #ffffff;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 11pt;
+  line-height: 1.65;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 16mm 18mm 16mm;
+}
+
+.lecture-header { border-bottom: 2.5px solid var(--teal-mid); padding-bottom: 10px; margin-bottom: 22px; }
+.lecture-title  { font-size: 20pt; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.lecture-sub    { font-size: 9pt; color: var(--text-muted); margin-top: 3px; letter-spacing: 0.3px; }
+
+.section       { margin-bottom: 20px; }
+.section-title { font-size: 12pt; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; margin-bottom: 9px; padding-bottom: 4px; border-bottom: 0.75px solid var(--border); }
+
+.badge { font-size: 8pt; font-weight: 600; padding: 2px 9px; border-radius: 20px; letter-spacing: 0.2px; }
+.bt { background: var(--teal-light);   color: var(--teal); }
+.bp { background: var(--purple-light); color: var(--purple); }
+.ba { background: var(--amber-light);  color: var(--amber); }
+.bb { background: var(--blue-light);   color: var(--blue); }
+.bc { background: var(--coral-light);  color: var(--coral); }
+
+p    { font-size: 10.5pt; color: var(--text); line-height: 1.65; margin-bottom: 7px; }
+code { font-family: var(--font-mono); font-size: 9pt; background: var(--gray-light); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr;         gap: 8px; margin-bottom: 9px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr;     gap: 8px; margin-bottom: 9px; }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+
+.card       { border: 0.75px solid var(--border); border-radius: 7px; padding: 9px 11px; background: #fff; }
+.card-title { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.card-body  { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; }
+
+.phase-row   { display: flex; align-items: stretch; gap: 0; margin-bottom: 10px; }
+.phase-box   { flex: 1; border-radius: 7px; padding: 10px; text-align: center; }
+.phase-arrow { display: flex; align-items: center; padding: 0 5px; color: var(--text-muted); font-size: 14pt; }
+.phase-title { font-size: 10.5pt; font-weight: 600; margin-bottom: 3px; }
+.phase-desc  { font-size: 8.5pt; line-height: 1.4; }
+.ph-teal   { background: var(--teal-light); }   .ph-teal .phase-title   { color: var(--teal); }   .ph-teal .phase-desc   { color: #0F6E56; }
+.ph-purple { background: var(--purple-light); } .ph-purple .phase-title { color: var(--purple); } .ph-purple .phase-desc { color: #534AB7; }
+.ph-amber  { background: var(--amber-light); }  .ph-amber .phase-title  { color: var(--amber); }  .ph-amber .phase-desc  { color: #854F0B; }
+.ph-blue   { background: var(--blue-light); }   .ph-blue .phase-title   { color: var(--blue); }   .ph-blue .phase-desc   { color: #0C447C; }
+.ph-coral  { background: var(--coral-light); }  .ph-coral .phase-title  { color: var(--coral); }  .ph-coral .phase-desc  { color: #712B13; }
+
+.hl { border-left: 3px solid var(--teal-mid); background: var(--teal-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: #085041; line-height: 1.55; }
+.wl { border-left: 3px solid #EF9F27;         background: var(--amber-light); border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--amber); line-height: 1.55; }
+.il { border-left: 3px solid #378ADD;         background: var(--blue-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--blue); line-height: 1.55; }
+.rl { border-left: 3px solid #C74848;         background: var(--red-light);   border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--red); line-height: 1.55; }
+
+.code-block { background: var(--gray-light); border: 0.75px solid var(--border); border-radius: 6px; padding: 9px 12px; font-family: var(--font-mono); font-size: 8.5pt; line-height: 1.6; white-space: pre; margin-bottom: 9px; color: var(--text); }
+
+/* Syntax token classes */
+.kw { color: #3C3489; font-weight: 600; }
+.st { color: #0F6E56; }
+.cm { color: #8A8880; font-style: italic; }
+.nm { color: #854F0B; }
+.fn { color: #0C447C; }
+
+.step-item { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 7px; font-size: 9.5pt; color: var(--text); line-height: 1.55; }
+.step-num  { width: 20px; height: 20px; border-radius: 50%; background: #9FE1CB; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+
+.qa-block { margin-bottom: 9px; }
+.qa-q { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.qa-a { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; padding-left: 10px; border-left: 2px solid var(--border); }
+
+.tag { display: inline-block; font-size: 8pt; font-weight: 600; padding: 1px 7px; border-radius: 3px; margin-right: 3px; }
+.tg { background: var(--green-light); color: var(--green); }
+.tr { background: var(--red-light);   color: var(--red); }
+.ta { background: var(--amber-light); color: var(--amber); }
+.tb { background: var(--blue-light);  color: var(--blue); }
+
+.cmp    { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 9px; }
+.cmp th { background: var(--gray-light); color: var(--text); font-weight: 600; padding: 6px 10px; text-align: left; border: 0.75px solid var(--border); }
+.cmp td { padding: 5px 10px; border: 0.75px solid var(--border); color: var(--text-muted); vertical-align: top; line-height: 1.5; }
+.cmp td strong { color: var(--text); }
+
+.divider { border-top: 0.75px solid var(--border); margin: 14px 0; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { background: #fff; }
+  .page { width: 100%; padding: 15mm 14mm; }
+  .section { page-break-inside: avoid; }
+  .card    { page-break-inside: avoid; }
+  @page { size: A4; margin: 0; }
+}
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="lecture-header">
+    <div class="lecture-title">Lecture 8 &mdash; Spark II: SQL &amp; Machine Learning</div>
+    <div class="lecture-sub">CS4225 / CS5425 &middot; Big Data Systems for Data Science &middot; National University of Singapore</div>
+  </div>
+
+  <!-- Section 1: Spark SQL & DataFrames -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">1</span> Spark SQL &amp; DataFrames — What &amp; Why</div>
+
+    <div class="hl"><strong>Core insight:</strong> Spark SQL is the layer that gives Spark the ability to understand <em>what</em> you want, not just <em>how</em> you said to get it. It exposes data as structured <strong>DataFrames</strong> — tables with named, typed columns — and an optimizer can then automatically improve your query before running it.</div>
+
+    <p>Spark SQL unifies all Spark components behind a single abstraction — the <strong>DataFrame</strong> (and its typed cousin, the <strong>Dataset</strong>). It is available in Java, Scala, Python, and R. Unlike raw RDDs, a DataFrame:</p>
+    <ul style="font-size:9.5pt; color:var(--text); padding-left:18px; margin-bottom:9px; line-height:1.7;">
+      <li>Carries a <strong>schema</strong> — Spark knows the name and type of every column.</li>
+      <li>Supports <strong>optimized relational operations</strong> — joins, aggregations, filters — using a query optimizer.</li>
+      <li>Can be queried with <strong>SQL strings</strong> or with a <strong>DSL</strong> (domain-specific language) that looks like pandas.</li>
+    </ul>
+
+    <div class="il">Think of a DataFrame as a distributed SQL table. You can write <code>df.filter(df.age &gt; 30).groupBy("city").count()</code> and Spark figures out the most efficient physical execution, just like a database planner would.</div>
+  </div>
+
+  <!-- Section 2: RDD vs DataFrame -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">2</span> RDD vs. DataFrame — The Key Conceptual Difference</div>
+
+    <div class="hl"><strong>RDD = HOW &nbsp;|&nbsp; DataFrame = WHAT.</strong><br>
+    With an RDD you tell Spark exactly how to transform data step by step. With a DataFrame you declare what result you want, and Spark chooses how to get there.</div>
+
+    <table class="cmp">
+      <tr>
+        <th>Dimension</th>
+        <th>RDD</th>
+        <th>DataFrame / Dataset</th>
+      </tr>
+      <tr>
+        <td><strong>Programming style</strong></td>
+        <td>Imperative — you write each transformation explicitly</td>
+        <td>Declarative — you describe the desired result</td>
+      </tr>
+      <tr>
+        <td><strong>Schema awareness</strong></td>
+        <td>None — data is arbitrary Python/Scala objects</td>
+        <td>Full schema — column names and types known</td>
+      </tr>
+      <tr>
+        <td><strong>Spark visibility</strong></td>
+        <td>Opaque — user functions are black boxes; Spark cannot inspect or optimise them</td>
+        <td>Transparent — Spark can parse, inspect, and rewrite the query plan</td>
+      </tr>
+      <tr>
+        <td><strong>Optimization</strong></td>
+        <td>None — runs exactly as written</td>
+        <td>Catalyst Optimizer automatically rewrites for performance</td>
+      </tr>
+      <tr>
+        <td><strong>Performance across languages</strong></td>
+        <td>Python RDDs are slower (serialization overhead)</td>
+        <td>Same performance in Python, Scala, Java, R — optimizer bridges the gap</td>
+      </tr>
+      <tr>
+        <td><strong>Ease of use</strong></td>
+        <td>Lower — must think about partitions and transformations</td>
+        <td>Higher — DSL similar to pandas / SQL</td>
+      </tr>
+    </table>
+
+    <p style="margin-top:9px;"><strong>Side-by-side code example</strong> — same task (average age per name) written both ways:</p>
+
+    <div class="grid2">
+      <div>
+        <p style="font-size:9pt; font-weight:600; color:var(--purple); margin-bottom:5px;">RDD approach</p>
+        <div class="code-block"><span class="cm"># Create an RDD of (name, age) tuples</span>
+dataRDD = sc.<span class="fn">parallelize</span>([
+    (<span class="st">"Brooke"</span>, <span class="nm">20</span>), (<span class="st">"Denny"</span>, <span class="nm">31</span>),
+    (<span class="st">"Jules"</span>, <span class="nm">30</span>), (<span class="st">"TD"</span>, <span class="nm">35</span>),
+    (<span class="st">"Brooke"</span>, <span class="nm">25</span>)])
+
+<span class="cm"># HOW: map each record, reduceByKey to</span>
+<span class="cm"># accumulate sum+count, then divide</span>
+agesRDD = (dataRDD
+  .<span class="fn">map</span>(<span class="kw">lambda</span> x: (x[<span class="nm">0</span>], (x[<span class="nm">1</span>], <span class="nm">1</span>)))
+  .<span class="fn">reduceByKey</span>(<span class="kw">lambda</span> x, y:
+      (x[<span class="nm">0</span>]+y[<span class="nm">0</span>], x[<span class="nm">1</span>]+y[<span class="nm">1</span>]))
+  .<span class="fn">map</span>(<span class="kw">lambda</span> x:
+      (x[<span class="nm">0</span>], x[<span class="nm">1</span>][<span class="nm">0</span>] / x[<span class="nm">1</span>][<span class="nm">1</span>])))</div>
+      </div>
+      <div>
+        <p style="font-size:9pt; font-weight:600; color:var(--teal); margin-bottom:5px;">DataFrame approach</p>
+        <div class="code-block"><span class="cm"># Create a DataFrame with a schema</span>
+data_df = spark.<span class="fn">createDataFrame</span>([
+    (<span class="st">"Brooke"</span>, <span class="nm">20</span>), (<span class="st">"Denny"</span>, <span class="nm">31</span>),
+    (<span class="st">"Jules"</span>, <span class="nm">30</span>), (<span class="st">"TD"</span>, <span class="nm">35</span>),
+    (<span class="st">"Brooke"</span>, <span class="nm">25</span>)],
+    [<span class="st">"name"</span>, <span class="st">"age"</span>])
+
+<span class="cm"># WHAT: group and aggregate — Spark</span>
+<span class="cm"># decides the execution strategy</span>
+avg_df = data_df.<span class="fn">groupBy</span>(<span class="st">"name"</span>).<span class="fn">agg</span>(<span class="fn">avg</span>(<span class="st">"age"</span>))
+avg_df.<span class="fn">show</span>()
+
+<span class="cm"># +------+--------+</span>
+<span class="cm"># | name |avg(age)|</span>
+<span class="cm"># +------+--------+</span>
+<span class="cm"># |Brooke|  22.5  |</span>
+<span class="cm"># | Jules|  30.0  |</span>
+<span class="cm"># |    TD|  35.0  |</span>
+<span class="cm"># | Denny|  31.0  |</span>
+<span class="cm"># +------+--------+</span></div>
+      </div>
+    </div>
+
+    <div class="il">Notice that the RDD version manually encodes the averaging logic (map to (name, (age, 1)), reduceByKey to sum both, then divide). The DataFrame version just says <code>groupBy("name").agg(avg("age"))</code> — Spark figures out the rest. The DataFrame version is also shorter, easier to read, and automatically optimised.</div>
+
+    <div class="wl"><strong>Exam trap:</strong> A common question asks why Python DataFrames match Scala performance but Python RDDs do not. Answer: with DataFrames the Catalyst Optimizer generates the same JVM bytecode regardless of which language the query was written in. The Python layer is only used to <em>build</em> the query plan, not to execute it row by row.</div>
+  </div>
+
+  <!-- Section 3: Catalyst Optimizer -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">3</span> The Catalyst Optimizer — Four-Phase Journey</div>
+
+    <p>Catalyst is the query optimizer that sits at the heart of Spark SQL. Whenever you write a DataFrame transformation or SQL query, Catalyst takes it through four phases before a single byte of data moves:</p>
+
+    <!-- Slide 9 diagram: full vertical pipeline with intermediate artifacts -->
+    <div style="display:flex; flex-direction:column; align-items:center; font-size:8.5pt; margin:10px 0 14px 0;">
+
+      <!-- Inputs -->
+      <div style="display:flex; gap:6px; margin-bottom:5px;">
+        <div style="background:var(--purple-light); border:1px solid var(--purple); border-radius:5px; padding:4px 10px; color:var(--purple); font-weight:600; font-size:8pt;">SQL AST</div>
+        <div style="background:var(--purple-light); border:1px solid var(--purple); border-radius:5px; padding:4px 10px; color:var(--purple); font-weight:600; font-size:8pt;">DataFrame</div>
+        <div style="background:var(--purple-light); border:1px solid var(--purple); border-radius:5px; padding:4px 10px; color:var(--purple); font-weight:600; font-size:8pt;">Datasets</div>
+      </div>
+      <div style="color:var(--text-muted); font-size:14pt; line-height:1; margin-bottom:5px;">&#8595;</div>
+
+      <!-- Phase 1: Analysis -->
+      <div style="border:1.5px solid var(--teal); border-radius:7px; overflow:hidden; width:270px; margin-bottom:2px;">
+        <div style="background:var(--teal); color:#fff; padding:3px 12px; font-size:7.5pt; font-weight:600; text-align:center; letter-spacing:0.4px;">1 &middot; ANALYSIS</div>
+        <div style="background:var(--teal-light); padding:8px 12px; display:flex; flex-direction:column; align-items:center; gap:3px;">
+          <div style="background:#fff; border:1px solid var(--border); border-radius:5px; padding:5px 8px; font-weight:600; text-align:center; font-size:8pt; width:100%;">Unresolved Logical Plan</div>
+          <!-- Arrow row with Catalog annotation -->
+          <div style="position:relative; width:100%; text-align:center;">
+            <div style="color:var(--teal); font-size:14pt; line-height:1.3;">&#8595;</div>
+            <div style="position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:4px;">
+              <span style="color:var(--text-muted); font-size:10pt;">&#8592;</span>
+              <div style="background:var(--amber-light); border:1px solid var(--amber); border-radius:4px; padding:2px 7px; color:var(--amber); font-weight:600; font-size:7.5pt; white-space:nowrap;">Catalog</div>
+            </div>
+          </div>
+          <div style="background:var(--teal-light); border:1.5px solid var(--teal); border-radius:5px; padding:5px 8px; color:var(--teal); font-weight:600; text-align:center; font-size:8pt; width:100%;">Logical Plan</div>
+        </div>
+      </div>
+
+      <div style="color:var(--text-muted); font-size:14pt; line-height:1; margin:4px 0;">&#8595;</div>
+
+      <!-- Phase 2: Logical Optimization -->
+      <div style="border:1.5px solid var(--purple); border-radius:7px; overflow:hidden; width:270px; margin-bottom:2px;">
+        <div style="background:var(--purple); color:#fff; padding:3px 12px; font-size:7.5pt; font-weight:600; text-align:center; letter-spacing:0.4px;">2 &middot; LOGICAL OPTIMIZATION</div>
+        <div style="background:var(--purple-light); padding:8px 12px; display:flex; flex-direction:column; align-items:center;">
+          <div style="background:var(--purple-light); border:1.5px solid var(--purple); border-radius:5px; padding:5px 8px; color:var(--purple); font-weight:600; text-align:center; font-size:8pt; width:100%;">Optimized Logical Plan</div>
+        </div>
+      </div>
+
+      <div style="color:var(--text-muted); font-size:14pt; line-height:1; margin:4px 0;">&#8595;</div>
+
+      <!-- Phase 3: Physical Planning -->
+      <div style="border:1.5px solid var(--amber); border-radius:7px; overflow:hidden; width:270px; margin-bottom:2px;">
+        <div style="background:var(--amber); color:#fff; padding:3px 12px; font-size:7.5pt; font-weight:600; text-align:center; letter-spacing:0.4px;">3 &middot; PHYSICAL PLANNING</div>
+        <div style="background:var(--amber-light); padding:8px 12px; display:flex; flex-direction:column; align-items:center; gap:3px;">
+          <div style="background:var(--amber-light); border:1px solid var(--amber); border-radius:5px; padding:5px 8px; color:var(--amber); font-weight:600; text-align:center; font-size:8pt; width:100%;">Physical Plans</div>
+          <!-- Arrow row with Cost Model annotation -->
+          <div style="position:relative; width:100%; text-align:center;">
+            <div style="color:var(--amber); font-size:14pt; line-height:1.3;">&#8595;</div>
+            <div style="position:absolute; right:0; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:4px;">
+              <span style="color:var(--text-muted); font-size:10pt;">&#8592;</span>
+              <div style="background:#fff; border:1px solid var(--amber); border-radius:4px; padding:2px 7px; color:var(--amber); font-weight:600; font-size:7.5pt; white-space:nowrap;">Cost Model</div>
+            </div>
+          </div>
+          <div style="background:var(--amber-light); border:1.5px solid var(--amber); border-radius:5px; padding:5px 8px; color:var(--amber); font-weight:600; text-align:center; font-size:8pt; width:100%;">Selected Physical Plan</div>
+        </div>
+      </div>
+
+      <div style="color:var(--text-muted); font-size:14pt; line-height:1; margin:4px 0;">&#8595;</div>
+
+      <!-- Phase 4: Code Generation -->
+      <div style="border:1.5px solid var(--blue); border-radius:7px; overflow:hidden; width:270px;">
+        <div style="background:var(--blue); color:#fff; padding:3px 12px; font-size:7.5pt; font-weight:600; text-align:center; letter-spacing:0.4px;">4 &middot; CODE GENERATION &mdash; PROJECT TUNGSTEN</div>
+        <div style="background:var(--blue-light); padding:8px 12px; display:flex; flex-direction:column; align-items:center;">
+          <div style="background:var(--blue-light); border:1.5px solid var(--blue); border-radius:5px; padding:5px 8px; color:var(--blue); font-weight:600; text-align:center; font-size:8pt; width:100%;">RDDs (optimised bytecode)</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="phase-row">
+      <div class="phase-box ph-teal">
+        <div class="phase-title">1. Analysis</div>
+        <div class="phase-desc">Resolve column names and types against the schema. Build an Abstract Syntax Tree (unresolved &rarr; resolved logical plan).</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-purple">
+        <div class="phase-title">2. Logical Optimisation</div>
+        <div class="phase-desc">Apply rule-based rewrites to the logical plan: predicate pushdown, constant folding, column pruning, join reordering.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">3. Physical Planning</div>
+        <div class="phase-desc">Generate multiple physical plans (e.g. broadcast join vs sort-merge join). Pick the best using a cost model.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-blue">
+        <div class="phase-title">4. Code Generation</div>
+        <div class="phase-desc">Project Tungsten compiles the chosen plan to optimised JVM bytecode — no interpreter overhead at runtime.</div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Predicate Pushdown (Phase 2)</div>
+        <div class="card-body">Filters are moved as early as possible — ideally into the data source — so fewer rows are ever read into memory. E.g. <code>WHERE age &gt; 30</code> filters at scan time, not after a join.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Column Pruning (Phase 2)</div>
+        <div class="card-body">Only columns actually referenced in the query are loaded. If a 100-column Parquet file is queried with <code>SELECT name, age</code>, only those two columns are deserialised.</div>
+      </div>
+    </div>
+
+    <p style="font-weight:600; margin-top:4px;">Worked example — Catalyst optimising a join + filter query</p>
+    <div class="code-block"><span class="cm">// In Scala — join two DataFrames, then filter by date</span>
+<span class="kw">val</span> usersDF  = <span class="cm">// Users DataFrame read from a Parquet table</span>
+<span class="kw">val</span> eventsDF = <span class="cm">// Events DataFrame read from a Parquet table</span>
+<span class="kw">val</span> joinedDF = users
+  .<span class="fn">join</span>(events, users(<span class="st">"id"</span>) === events(<span class="st">"uid"</span>))
+  .<span class="fn">filter</span>(events(<span class="st">"date"</span>) &gt; <span class="st">"2015-01-01"</span>)</div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:9px; font-size:8pt;">
+
+      <!-- Logical Plan -->
+      <div style="display:flex; flex-direction:column; align-items:center;">
+        <div style="font-weight:600; color:var(--blue); margin-bottom:6px; text-align:center;">Logical Plan</div>
+        <svg width="195" height="130" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr1" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#A0A09B"/>
+            </marker>
+          </defs>
+          <!-- join ← filter (arrow points up into filter) -->
+          <line x1="97" y1="54" x2="97" y2="26" stroke="#C0BEB8" stroke-width="1.5" marker-end="url(#arr1)"/>
+          <!-- events file → join (diagonal, arrow points up into join) -->
+          <line x1="44" y1="104" x2="80" y2="76" stroke="#C0BEB8" stroke-width="1.5" marker-end="url(#arr1)"/>
+          <!-- users table → join (diagonal, arrow points up into join) -->
+          <line x1="152" y1="104" x2="114" y2="76" stroke="#C0BEB8" stroke-width="1.5" marker-end="url(#arr1)"/>
+          <!-- filter box (operator) -->
+          <rect x="57" y="4" width="80" height="22" rx="4" fill="#E6F1FB" stroke="#0C447C" stroke-width="1"/>
+          <text x="97" y="19" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" font-weight="600" fill="#0C447C">filter</text>
+          <!-- join box (operator) -->
+          <rect x="57" y="54" width="80" height="22" rx="4" fill="#E6F1FB" stroke="#0C447C" stroke-width="1"/>
+          <text x="97" y="69" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" font-weight="600" fill="#0C447C">join</text>
+          <!-- events file (data source) -->
+          <rect x="2" y="104" width="80" height="22" rx="4" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+          <text x="42" y="119" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="#854F0B">events file</text>
+          <!-- users table (data source) -->
+          <rect x="112" y="104" width="80" height="22" rx="4" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+          <text x="152" y="119" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="#854F0B">users table</text>
+        </svg>
+        <div style="font-size:7.5pt; color:var(--text-muted); text-align:center; margin-top:5px; line-height:1.4;">As written: full join first, <em>then</em> filter — reads all rows from both tables.</div>
+      </div>
+
+      <!-- Physical Plan -->
+      <div style="display:flex; flex-direction:column; align-items:center;">
+        <div style="font-weight:600; color:var(--amber); margin-bottom:6px; text-align:center;">Physical Plan</div>
+        <svg width="200" height="130" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr2" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#A0A09B"/>
+            </marker>
+          </defs>
+          <!-- scan(events) → join (diagonal, arrow points up into join) -->
+          <line x1="47" y1="54" x2="80" y2="26" stroke="#C0BEB8" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <!-- filter → join (diagonal, arrow points up into join) -->
+          <line x1="150" y1="54" x2="114" y2="26" stroke="#C0BEB8" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <!-- scan(users) → filter (arrow points up into filter) -->
+          <line x1="150" y1="104" x2="150" y2="76" stroke="#C0BEB8" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <!-- join box -->
+          <rect x="57" y="4" width="80" height="22" rx="4" fill="#E6F1FB" stroke="#0C447C" stroke-width="1"/>
+          <text x="97" y="19" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" font-weight="600" fill="#0C447C">join</text>
+          <!-- scan(events) — data source -->
+          <rect x="2" y="54" width="90" height="22" rx="4" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+          <text x="47" y="69" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="#854F0B">scan (events)</text>
+          <!-- filter — operator -->
+          <rect x="105" y="54" width="90" height="22" rx="4" fill="#E6F1FB" stroke="#0C447C" stroke-width="1"/>
+          <text x="150" y="69" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" font-weight="600" fill="#0C447C">filter</text>
+          <!-- scan(users) — data source -->
+          <rect x="105" y="104" width="90" height="22" rx="4" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+          <text x="150" y="119" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="8" fill="#854F0B">scan (users)</text>
+        </svg>
+        <div style="font-size:7.5pt; color:var(--text-muted); text-align:center; margin-top:5px; line-height:1.4;"><strong>Predicate pushdown:</strong> filter moved before the join — only matching users rows enter the join.</div>
+      </div>
+
+      <!-- Optimized Physical Plan -->
+      <div style="display:flex; flex-direction:column; align-items:center;">
+        <div style="font-weight:600; color:var(--teal); margin-bottom:6px; text-align:center;">+ Column Pruning</div>
+        <svg width="195" height="100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arr3" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#A0A09B"/>
+            </marker>
+          </defs>
+          <!-- opt scan(events) → join (diagonal, arrow points up into join) -->
+          <line x1="47" y1="54" x2="80" y2="26" stroke="#C0BEB8" stroke-width="1.5" marker-end="url(#arr3)"/>
+          <!-- opt scan(users) → join (diagonal, arrow points up into join) -->
+          <line x1="148" y1="54" x2="114" y2="26" stroke="#C0BEB8" stroke-width="1.5" marker-end="url(#arr3)"/>
+          <!-- join box -->
+          <rect x="57" y="4" width="80" height="22" rx="4" fill="#E6F1FB" stroke="#0C447C" stroke-width="1"/>
+          <text x="97" y="19" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="9" font-weight="600" fill="#0C447C">join</text>
+          <!-- optimized scan (events) — teal = fully optimised -->
+          <rect x="2" y="54" width="90" height="36" rx="4" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+          <text x="47" y="68" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7.5" font-style="italic" fill="#0F6E56">optimized</text>
+          <text x="47" y="82" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7.5" fill="#0F6E56">scan (events)</text>
+          <!-- optimized scan (users) — teal -->
+          <rect x="103" y="54" width="90" height="36" rx="4" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+          <text x="148" y="68" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7.5" font-style="italic" fill="#0F6E56">optimized</text>
+          <text x="148" y="82" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="7.5" fill="#0F6E56">scan (users)</text>
+        </svg>
+        <div style="font-size:7.5pt; color:var(--text-muted); text-align:center; margin-top:5px; line-height:1.4;"><strong>Column pruning added:</strong> both scans read only required columns directly inside the Parquet file reader.</div>
+      </div>
+
+    </div>
+
+    <div class="il">The code <code>.join().filter()</code> is written with the filter last, but Catalyst rewrites the execution so the filter runs before the join and unnecessary columns are never loaded from disk. The final <em>result</em> is identical; the <em>cost</em> is dramatically lower — especially important at scale.</div>
+  </div>
+
+  <!-- Section 4: Project Tungsten -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">4</span> Project Tungsten — Hardware-Level Optimisation</div>
+
+    <p>Project Tungsten is Spark's initiative to push performance as close as possible to the theoretical limits of modern hardware (CPU and memory). It operates at the code-generation phase of Catalyst.</p>
+
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Memory Management &amp; Binary Processing</div>
+        <div class="card-body">Manages memory <strong>off-heap</strong> in a compact binary format, bypassing Java object overhead and garbage collection (GC) pauses. Avoids GC pressure that slows JVM programs.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cache-Aware Computation</div>
+        <div class="card-body">Algorithms and data structures are arranged to maximise CPU cache hits. Sorting and aggregation operate on binary data laid out to fit CPU cache lines.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Whole-Stage Code Generation</div>
+        <div class="card-body">Instead of interpreting operators row-by-row, Tungsten generates a single tight loop of JVM bytecode for an entire pipeline stage — eliminating virtual function dispatch overhead.</div>
+      </div>
+    </div>
+
+    <div class="hl">The combined effect: <strong>language performance parity</strong>. A Python DataFrame query produces the same generated JVM bytecode as an equivalent Scala query — so Python users get Scala-level performance when using the DataFrame/SQL API.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Section 5: ML Pipeline Overview -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">5</span> Machine Learning with Spark ML — Overview</div>
+
+    <div class="hl"><strong>Core insight:</strong> Spark ML (part of MLlib) brings the full supervised machine learning workflow — preprocessing, training, evaluation — into the distributed Spark framework, so it scales to datasets that don't fit on one machine.</div>
+
+    <p>Supervised ML tasks come in two flavours:</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Classification</div>
+        <div class="card-body">Predict a <strong>categorical label</strong> (a class) from features.<br>
+        Example: given an email's words, predict <em>spam</em> or <em>not spam</em>.<br>
+        Inputs: feature matrix X<sub>train</sub>, label vector y<sub>train</sub> (discrete classes).</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Regression</div>
+        <div class="card-body">Predict a <strong>numeric value</strong> from features.<br>
+        Example: given patient vitals, predict <em>length of hospital stay</em> in days.<br>
+        Inputs: feature matrix X<sub>train</sub>, label vector y<sub>train</sub> (continuous numbers).</div>
+      </div>
+    </div>
+
+    <!-- Classification example -->
+    <p style="font-size:9pt; font-weight:600; margin-bottom:4px;">Example 1 &mdash; Classification: Spam Detection</p>
+    <p style="font-size:8.5pt; color:var(--text-muted); margin-bottom:5px;"><strong>Step 1 — Training:</strong> the model sees labelled rows and learns which feature patterns correspond to each class.</p>
+    <table class="cmp" style="margin-bottom:5px;">
+      <tr>
+        <th colspan="4" style="background:var(--gray-light); text-align:center;">Input features X<sub>train</sub></th>
+        <th style="background:var(--teal-light); color:var(--teal); text-align:center;">Label y<sub>train</sub></th>
+      </tr>
+      <tr><th>word_count</th><th>has_link</th><th>from_unknown</th><th>exclamations</th><th></th></tr>
+      <tr><td>45</td><td>1 (yes)</td><td>1 (yes)</td><td>3</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600; text-align:center;">1 — spam</td></tr>
+      <tr><td>120</td><td>0 (no)</td><td>0 (no)</td><td>0</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600; text-align:center;">0 — not spam</td></tr>
+      <tr><td>30</td><td>1 (yes)</td><td>1 (yes)</td><td>5</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600; text-align:center;">1 — spam</td></tr>
+      <tr><td>200</td><td>0 (no)</td><td>0 (no)</td><td>1</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600; text-align:center;">0 — not spam</td></tr>
+    </table>
+    <p style="font-size:8.5pt; color:var(--text-muted); margin-bottom:5px;"><strong>Step 2 — Prediction:</strong> given an unseen email, the model outputs a predicted class.</p>
+    <table class="cmp" style="margin-bottom:5px;">
+      <tr>
+        <th colspan="4" style="background:var(--gray-light); text-align:center;">Input features X<sub>test</sub></th>
+        <th style="background:var(--blue-light); color:var(--blue); text-align:center;">Prediction ŷ<sub>test</sub></th>
+      </tr>
+      <tr><th>word_count</th><th>has_link</th><th>from_unknown</th><th>exclamations</th><th></th></tr>
+      <tr><td>25</td><td>1 (yes)</td><td>1 (yes)</td><td>4</td><td style="background:var(--blue-light); color:var(--blue); font-weight:600; text-align:center;">1 — spam</td></tr>
+    </table>
+    <div class="hl" style="margin-bottom:12px;">Output is a <strong>discrete class label</strong>. The model fires on the combination of has_link + from_unknown + high exclamation count, all of which were associated with spam in the training data.</div>
+
+    <!-- Regression example -->
+    <p style="font-size:9pt; font-weight:600; margin-bottom:4px;">Example 2 &mdash; Regression: Hospital Stay Prediction</p>
+    <p style="font-size:8.5pt; color:var(--text-muted); margin-bottom:5px;"><strong>Step 1 — Training:</strong> the model sees labelled rows and learns the relationship between patient features and length of stay.</p>
+    <table class="cmp" style="margin-bottom:5px;">
+      <tr>
+        <th colspan="4" style="background:var(--gray-light); text-align:center;">Input features X<sub>train</sub></th>
+        <th style="background:var(--teal-light); color:var(--teal); text-align:center;">Label y<sub>train</sub></th>
+      </tr>
+      <tr><th>age</th><th>blood_pressure</th><th>diagnosis</th><th>num_meds</th><th></th></tr>
+      <tr><td>65</td><td>140</td><td>cardiac</td><td>5</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600; text-align:center;">12 days</td></tr>
+      <tr><td>45</td><td>120</td><td>diabetes</td><td>2</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600; text-align:center;">3 days</td></tr>
+      <tr><td>72</td><td>160</td><td>cardiac</td><td>8</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600; text-align:center;">18 days</td></tr>
+      <tr><td>30</td><td>115</td><td>minor</td><td>1</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600; text-align:center;">1 day</td></tr>
+    </table>
+    <p style="font-size:8.5pt; color:var(--text-muted); margin-bottom:5px;"><strong>Step 2 — Prediction:</strong> given an unseen patient, the model outputs a predicted numeric value.</p>
+    <table class="cmp" style="margin-bottom:5px;">
+      <tr>
+        <th colspan="4" style="background:var(--gray-light); text-align:center;">Input features X<sub>test</sub></th>
+        <th style="background:var(--blue-light); color:var(--blue); text-align:center;">Prediction ŷ<sub>test</sub></th>
+      </tr>
+      <tr><th>age</th><th>blood_pressure</th><th>diagnosis</th><th>num_meds</th><th></th></tr>
+      <tr><td>58</td><td>135</td><td>cardiac</td><td>6</td><td style="background:var(--blue-light); color:var(--blue); font-weight:600; text-align:center;">9.4 days</td></tr>
+    </table>
+    <div class="hl" style="margin-bottom:12px;">Output is a <strong>continuous number</strong> — not a class. 9.4 days lies between the 3-day diabetes patient and the 12-day cardiac patient, which makes intuitive sense given the features.</div>
+
+    <div class="wl" style="margin-bottom:9px;"><strong>Key difference:</strong> classification outputs a category (spam / not spam); regression outputs any real number (9.4 days). This determines which loss function and evaluation metrics you use.</div>
+
+    <p>The typical ML pipeline has four phases:</p>
+    <div class="phase-row">
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Preprocessing</div>
+        <div class="phase-desc">Process raw data — handle missing values, encode categoricals, normalise features.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-purple">
+        <div class="phase-title">Training</div>
+        <div class="phase-desc">Fit a model to (X<sub>train</sub>, y<sub>train</sub>) — learn parameters that minimise a loss function.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">Testing</div>
+        <div class="phase-desc">Apply the trained model to unseen X<sub>test</sub> to produce predictions ŷ<sub>test</sub>.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-coral">
+        <div class="phase-title">Evaluation</div>
+        <div class="phase-desc">Compare ŷ<sub>test</sub> against ground truth y<sub>test</sub> using accuracy, F1, RMSE, etc.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 6: Data Preprocessing -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">6</span> Data Preprocessing — Cleaning &amp; Feature Engineering</div>
+
+    <div class="il">"Garbage in, garbage out." Google AI (SIGCHI 2021) found that 92% of high-stakes AI projects reported downstream problems caused by data quality issues. NYT reported that data scientists spend 50–80% of their time on data preparation.</div>
+
+    <p><strong>Missing Values</strong></p>
+    <p>Data can be missing because it was never collected, or because it is <em>missing not at random</em> (in which case the missingness is itself informative). Options:</p>
+
+    <div class="step-item"><span class="step-num">1</span><div><strong>Drop rows</strong> — eliminate any record that has a missing value. Simple but wasteful if many rows are affected.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div><strong>Mean/median imputation</strong> — replace each missing value with the column's mean or median. Preserves row count. <code>Imputer</code> in PySpark handles this.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div><strong>Regression imputation</strong> — build a secondary model to predict the missing column from other columns. More accurate but more complex.</div></div>
+    <div class="step-item"><span class="step-num">4</span><div><strong>Dummy variable</strong> — after imputing, optionally add an indicator column (1 = was missing, 0 = was present) so the model can learn whether missingness itself is a signal.</div></div>
+
+    <div class="code-block"><span class="kw">from</span> pyspark.ml.feature <span class="kw">import</span> Imputer
+imputer = <span class="fn">Imputer</span>(inputCols=[<span class="st">"height"</span>, <span class="st">"weight"</span>], outputCols=[<span class="st">"height_out"</span>, <span class="st">"weight_out"</span>])
+model = imputer.<span class="fn">fit</span>(df)
+model.<span class="fn">transform</span>(df).<span class="fn">show</span>()</div>
+
+    <div class="divider"></div>
+
+    <p><strong>Categorical Encoding</strong></p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Ordinal Encoding</div>
+        <div class="card-body">Map categories to integers that preserve an inherent order.<br><br>
+        Example: Risk = {Low, Medium, High} &rarr; {0, 1, 2}.<br><br>
+        Use when there IS a natural ordering among categories (e.g. severity levels). Algorithms like linear regression can exploit the ordering.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">One-Hot Encoding (OHE)</div>
+        <div class="card-body">Convert a categorical column with K values into K binary columns; exactly one column is 1 per row.<br><br>
+        Use when there is NO ordinal relationship. Prevents the model from inferring a false numeric ordering.</div>
+      </div>
+    </div>
+
+    <p style="font-size:8.5pt; color:var(--text-muted); margin-bottom:5px;">OHE worked example — Group column with 3 categories {A, B, C} expands into 3 binary columns:</p>
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:9px;">
+      <div style="flex:1;">
+        <table class="cmp">
+          <tr><th>index</th><th>group</th></tr>
+          <tr><td>0</td><td>B</td></tr>
+          <tr><td>1</td><td>A</td></tr>
+          <tr><td>2</td><td>C</td></tr>
+        </table>
+      </div>
+      <div style="font-size:18pt; color:var(--text-muted); flex-shrink:0;">&rarr;</div>
+      <div style="flex:2;">
+        <table class="cmp">
+          <tr><th>index</th><th style="color:var(--blue);">GroupA</th><th style="color:var(--teal);">GroupB</th><th style="color:var(--amber);">GroupC</th></tr>
+          <tr><td>0</td><td style="color:var(--text-muted);">0</td><td style="background:var(--teal-light); color:var(--teal); font-weight:600;">1</td><td style="color:var(--text-muted);">0</td></tr>
+          <tr><td>1</td><td style="background:var(--blue-light); color:var(--blue); font-weight:600;">1</td><td style="color:var(--text-muted);">0</td><td style="color:var(--text-muted);">0</td></tr>
+          <tr><td>2</td><td style="color:var(--text-muted);">0</td><td style="color:var(--text-muted);">0</td><td style="background:var(--amber-light); color:var(--amber); font-weight:600;">1</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="wl"><strong>Exam trap:</strong> Applying ordinal encoding to a non-ordinal feature (e.g. colours: red=0, blue=1, green=2) implies blue is "between" red and green, which is meaningless and can hurt model performance. Use one-hot encoding instead.</div>
+
+    <div class="divider"></div>
+
+    <p><strong>Normalisation / Scaling</strong></p>
+    <p>Many algorithms (especially gradient-based ones like logistic regression) are sensitive to the scale of features. Normalisation brings all features onto a comparable range.</p>
+
+    <!-- shared note + raw data graph -->
+    <p style="font-size:8.5pt; color:var(--text-muted); margin-bottom:6px;">Each histogram below shows the distribution of a <em>Price</em> feature after applying each method. The raw feature is right-skewed (most prices are low, with a long tail of high prices). Notice how only the x-axis scale changes for linear transforms, while clipping and log actively reshape the distribution.</p>
+
+    <div style="display:flex; align-items:center; gap:14px; margin-bottom:10px;">
+      <div style="flex-shrink:0;">
+        <p style="font-size:8.5pt; font-weight:600; color:var(--text); margin-bottom:3px; text-align:center;">Price (raw feature)</p>
+        <svg viewBox="0 0 130 78" width="180" style="display:block;">
+          <line x1="14" y1="57" x2="122" y2="57" stroke="#D3D1C7" stroke-width="0.75"/>
+          <line x1="14" y1="6"  x2="14"  y2="57" stroke="#D3D1C7" stroke-width="0.75"/>
+          <!-- right-skewed bars -->
+          <rect x="15" y="8"  width="6" height="49" fill="#6B9DC3"/>
+          <rect x="22" y="12" width="6" height="45" fill="#6B9DC3"/>
+          <rect x="29" y="26" width="6" height="31" fill="#6B9DC3"/>
+          <rect x="36" y="35" width="6" height="22" fill="#6B9DC3"/>
+          <rect x="43" y="42" width="6" height="15" fill="#6B9DC3"/>
+          <rect x="50" y="46" width="6" height="11" fill="#6B9DC3"/>
+          <rect x="57" y="50" width="6" height="7"  fill="#6B9DC3"/>
+          <rect x="64" y="53" width="6" height="4"  fill="#6B9DC3"/>
+          <rect x="71" y="53" width="6" height="4"  fill="#6B9DC3"/>
+          <rect x="78" y="54" width="6" height="3"  fill="#6B9DC3"/>
+          <rect x="85" y="55" width="6" height="2"  fill="#6B9DC3"/>
+          <rect x="92" y="56" width="6" height="1"  fill="#6B9DC3"/>
+          <rect x="99" y="56" width="6" height="1"  fill="#6B9DC3"/>
+          <rect x="106" y="56" width="6" height="1" fill="#6B9DC3"/>
+          <!-- x-axis labels -->
+          <text x="15"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="start">5k</text>
+          <text x="68"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">20k</text>
+          <text x="122" y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="end">40k</text>
+          <!-- y-axis labels -->
+          <text x="12" y="10"  font-family="DM Sans,sans-serif" font-size="5.5" fill="#888" text-anchor="end">25</text>
+          <text x="12" y="33"  font-family="DM Sans,sans-serif" font-size="5.5" fill="#888" text-anchor="end">12</text>
+          <text x="12" y="58"  font-family="DM Sans,sans-serif" font-size="5.5" fill="#888" text-anchor="end">0</text>
+        </svg>
+      </div>
+      <div style="font-size:22pt; color:var(--text-muted); flex-shrink:0;">&rarr;</div>
+      <div style="flex:1;">
+        <div class="il" style="margin-bottom:0;">The raw Price feature is <strong>right-skewed</strong> — the tallest bars are at the low end (cheap properties are common) and the distribution has a long tail to the right (a few very expensive properties). This skew can hurt ML models that assume roughly equal feature ranges. The four methods below each handle it differently.</div>
+      </div>
+    </div>
+
+    <div class="grid4">
+
+      <!-- Clipping -->
+      <div class="card">
+        <div class="card-title">Clipping &mdash; clip(x)</div>
+        <svg viewBox="0 0 110 78" width="100%" style="display:block; margin:4px 0 3px;">
+          <line x1="12" y1="57" x2="104" y2="57" stroke="#D3D1C7" stroke-width="0.75"/>
+          <!-- bars: same left-side shape, right tail cut at ~60% mark -->
+          <rect x="13" y="8"  width="5" height="49" fill="#6B9DC3"/>
+          <rect x="19" y="12" width="5" height="45" fill="#6B9DC3"/>
+          <rect x="26" y="26" width="5" height="31" fill="#6B9DC3"/>
+          <rect x="32" y="35" width="5" height="22" fill="#6B9DC3"/>
+          <rect x="39" y="42" width="5" height="15" fill="#6B9DC3"/>
+          <rect x="45" y="46" width="5" height="11" fill="#6B9DC3"/>
+          <rect x="52" y="50" width="5" height="7"  fill="#6B9DC3"/>
+          <rect x="59" y="53" width="5" height="4"  fill="#6B9DC3"/>
+          <!-- clip threshold — dashed red line, no bars after this -->
+          <line x1="70" y1="6" x2="70" y2="57" stroke="#C74848" stroke-width="0.8" stroke-dasharray="2,1.5"/>
+          <!-- x-axis labels -->
+          <text x="13"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="start">5k</text>
+          <text x="70"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#C74848" text-anchor="middle">25k</text>
+          <text x="104" y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="end">40k</text>
+          <text x="70"  y="75" font-family="DM Sans,sans-serif" font-size="5.5" fill="#C74848" text-anchor="middle">clip</text>
+        </svg>
+        <div class="card-body">Cap values at a min and max threshold. Removes extreme outliers without changing the rest.</div>
+      </div>
+
+      <!-- Log Transform -->
+      <div class="card">
+        <div class="card-title">Log Transform &mdash; log(1+x)</div>
+        <svg viewBox="0 0 110 78" width="100%" style="display:block; margin:4px 0 3px;">
+          <line x1="12" y1="57" x2="104" y2="57" stroke="#D3D1C7" stroke-width="0.75"/>
+          <!-- bars: more symmetric / bell-shaped after log compression -->
+          <rect x="13" y="53" width="5" height="4"  fill="#6B9DC3"/>
+          <rect x="19" y="49" width="5" height="8"  fill="#6B9DC3"/>
+          <rect x="26" y="40" width="5" height="17" fill="#6B9DC3"/>
+          <rect x="32" y="29" width="5" height="28" fill="#6B9DC3"/>
+          <rect x="39" y="13" width="5" height="44" fill="#6B9DC3"/>
+          <rect x="45" y="8"  width="5" height="49" fill="#6B9DC3"/>
+          <rect x="52" y="17" width="5" height="40" fill="#6B9DC3"/>
+          <rect x="59" y="30" width="5" height="27" fill="#6B9DC3"/>
+          <rect x="65" y="40" width="5" height="17" fill="#6B9DC3"/>
+          <rect x="72" y="46" width="5" height="11" fill="#6B9DC3"/>
+          <rect x="78" y="50" width="5" height="7"  fill="#6B9DC3"/>
+          <rect x="85" y="53" width="5" height="4"  fill="#6B9DC3"/>
+          <rect x="92" y="55" width="5" height="2"  fill="#6B9DC3"/>
+          <rect x="98" y="56" width="5" height="1"  fill="#6B9DC3"/>
+          <!-- x-axis labels -->
+          <text x="13"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="start">8.5</text>
+          <text x="58"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">9.8</text>
+          <text x="104" y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="end">11.0</text>
+        </svg>
+        <div class="card-body">Apply log(1 + x). Compresses large-valued, right-skewed features (e.g. income, counts) into a more Gaussian-like distribution.</div>
+      </div>
+
+      <!-- Standard Scaler -->
+      <div class="card">
+        <div class="card-title">Standard Scaler</div>
+        <svg viewBox="0 0 110 78" width="100%" style="display:block; margin:4px 0 3px;">
+          <line x1="12" y1="57" x2="104" y2="57" stroke="#D3D1C7" stroke-width="0.75"/>
+          <!-- bars: same right-skewed shape, x-axis now in std units -->
+          <rect x="13" y="8"  width="5" height="49" fill="#6B9DC3"/>
+          <rect x="19" y="12" width="5" height="45" fill="#6B9DC3"/>
+          <rect x="26" y="26" width="5" height="31" fill="#6B9DC3"/>
+          <rect x="32" y="35" width="5" height="22" fill="#6B9DC3"/>
+          <rect x="39" y="42" width="5" height="15" fill="#6B9DC3"/>
+          <rect x="45" y="46" width="5" height="11" fill="#6B9DC3"/>
+          <rect x="52" y="50" width="5" height="7"  fill="#6B9DC3"/>
+          <rect x="59" y="53" width="5" height="4"  fill="#6B9DC3"/>
+          <rect x="65" y="53" width="5" height="4"  fill="#6B9DC3"/>
+          <rect x="72" y="54" width="5" height="3"  fill="#6B9DC3"/>
+          <rect x="78" y="55" width="5" height="2"  fill="#6B9DC3"/>
+          <rect x="85" y="56" width="5" height="1"  fill="#6B9DC3"/>
+          <rect x="92" y="56" width="5" height="1"  fill="#6B9DC3"/>
+          <rect x="98" y="56" width="5" height="1"  fill="#6B9DC3"/>
+          <!-- zero line (mean) -->
+          <line x1="23" y1="6" x2="23" y2="57" stroke="#D3D1C7" stroke-width="0.75" stroke-dasharray="2,1.5"/>
+          <!-- x-axis labels -->
+          <text x="13"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="start">−2</text>
+          <text x="23"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">0</text>
+          <text x="104" y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="end">5</text>
+        </svg>
+        <div class="card-body">Subtract mean, divide by std: (x &minus; mean) / std. Output has mean 0 and std 1.</div>
+      </div>
+
+      <!-- Min-Max Scaling -->
+      <div class="card">
+        <div class="card-title">Max Min Normalisation</div>
+        <svg viewBox="0 0 110 78" width="100%" style="display:block; margin:4px 0 3px;">
+          <line x1="12" y1="57" x2="104" y2="57" stroke="#D3D1C7" stroke-width="0.75"/>
+          <!-- bars: same right-skewed shape, x-axis now in [0,1] -->
+          <rect x="13" y="8"  width="5" height="49" fill="#6B9DC3"/>
+          <rect x="19" y="12" width="5" height="45" fill="#6B9DC3"/>
+          <rect x="26" y="26" width="5" height="31" fill="#6B9DC3"/>
+          <rect x="32" y="35" width="5" height="22" fill="#6B9DC3"/>
+          <rect x="39" y="42" width="5" height="15" fill="#6B9DC3"/>
+          <rect x="45" y="46" width="5" height="11" fill="#6B9DC3"/>
+          <rect x="52" y="50" width="5" height="7"  fill="#6B9DC3"/>
+          <rect x="59" y="53" width="5" height="4"  fill="#6B9DC3"/>
+          <rect x="65" y="53" width="5" height="4"  fill="#6B9DC3"/>
+          <rect x="72" y="54" width="5" height="3"  fill="#6B9DC3"/>
+          <rect x="78" y="55" width="5" height="2"  fill="#6B9DC3"/>
+          <rect x="85" y="56" width="5" height="1"  fill="#6B9DC3"/>
+          <rect x="92" y="56" width="5" height="1"  fill="#6B9DC3"/>
+          <rect x="98" y="56" width="5" height="1"  fill="#6B9DC3"/>
+          <!-- x-axis labels -->
+          <text x="13"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="start">0.0</text>
+          <text x="58"  y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">0.5</text>
+          <text x="104" y="67" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="end">1.0</text>
+        </svg>
+        <div class="card-body">Scale to [0, 1]: (x &minus; min) / (max &minus; min). Useful when the exact range matters.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Section 7: Logistic Regression -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">7</span> Logistic Regression — Algorithm Deep Dive</div>
+
+    <p>Logistic regression is the canonical binary classification algorithm. Despite the name "regression", it predicts a <em>probability</em> which is then thresholded to give a class label.</p>
+
+    <p><strong>The Sigmoid Function</strong></p>
+    <p>The sigmoid (logistic) function squashes any real number into the range (0, 1), making it interpretable as a probability:</p>
+
+    <div class="code-block">σ(z) = <span class="nm">1</span> / (<span class="nm">1</span> + e<sup>−z</sup>)
+
+where  z = w · x + b   (dot product of weights and input features, plus bias)
+
+σ(z) → <span class="nm">1</span>  as  z → +∞   (model is very confident of class 1)
+σ(z) → <span class="nm">0</span>  as  z → −∞   (model is very confident of class 0)
+σ(<span class="nm">0</span>) = <span class="nm">0.5</span>            (model is uncertain)</div>
+
+    <p><strong>Parameters:</strong> The model learns weights vector <code>w</code> (one weight per feature) and a bias term <code>b</code>. The prediction for a new sample x is:</p>
+
+    <div class="code-block">ŷ = σ(w · x + b)    <span class="cm"># predicted probability of class 1</span>
+predicted class = <span class="nm">1</span> if ŷ ≥ <span class="nm">0.5</span>, else <span class="nm">0</span></div>
+
+    <p><strong>Loss Function — Cross-Entropy Loss</strong></p>
+    <p>To train the model, we define a loss that measures how wrong the predictions are. Cross-entropy loss is low when predicted probability is close to the true label, and high when it is far:</p>
+
+    <div class="code-block">J(w, b) = −(1/n) Σᵢ [ yᵢ · log(σ(wᵀxᵢ + b)) + (1 − yᵢ) · log(1 − σ(wᵀxᵢ + b)) ]
+
+For a positive example (y=1): penalises predictions close to 0  (high loss if ŷ ≈ 0)
+For a negative example (y=0): penalises predictions close to 1  (high loss if ŷ ≈ 1)</div>
+
+    <div class="hl">The big picture: <strong>machine learning = fitting parameters by minimising a loss function</strong>. Here we fit w and b to minimise the cross-entropy loss J(w, b) over all training samples.</div>
+
+    <div class="divider"></div>
+
+    <p><strong>Worked example — Spam Classification (from slides)</strong></p>
+    <p style="font-size:9.5pt; color:var(--text-muted); margin-bottom:8px;">An email has 5 dollar signs and 2 exclamation marks. Given learned weights <strong>w = (1, 2)</strong> and bias <strong>b = &minus;5</strong>, what is the predicted spam probability?</p>
+
+    <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:9px;">
+
+      <!-- Left: sigmoid curve SVG -->
+      <div style="flex-shrink:0;">
+        <p style="font-size:8pt; font-weight:600; color:var(--text-muted); text-align:center; margin-bottom:3px;">Sigmoid &sigma;(z) = 1 / (1 + e<sup>&minus;z</sup>)</p>
+        <svg viewBox="0 0 160 100" width="200" style="display:block;">
+          <!-- grid lines -->
+          <line x1="20" y1="45" x2="150" y2="45" stroke="#F1EFE8" stroke-width="0.75"/>
+          <!-- axes -->
+          <line x1="20" y1="80" x2="152" y2="80" stroke="#D3D1C7" stroke-width="1"/>
+          <line x1="85" y1="8"  x2="85"  y2="82" stroke="#D3D1C7" stroke-width="1"/>
+          <!-- y=0.5 dashed line -->
+          <line x1="20" y1="45" x2="150" y2="45" stroke="#D3D1C7" stroke-width="0.75" stroke-dasharray="2,2"/>
+          <text x="14" y="47" font-family="DM Sans,sans-serif" font-size="6.5" fill="#888" text-anchor="end">0.5</text>
+          <!-- y=1 label -->
+          <text x="14" y="12" font-family="DM Sans,sans-serif" font-size="6.5" fill="#888" text-anchor="end">1</text>
+          <!-- y=0 label -->
+          <text x="14" y="82" font-family="DM Sans,sans-serif" font-size="6.5" fill="#888" text-anchor="end">0</text>
+          <!-- x-axis tick labels -->
+          <text x="20"  y="89" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">&minus;6</text>
+          <text x="42"  y="89" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">&minus;4</text>
+          <text x="63"  y="89" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">&minus;2</text>
+          <text x="85"  y="89" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">0</text>
+          <text x="107" y="89" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">2</text>
+          <text x="128" y="89" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">4</text>
+          <text x="150" y="89" font-family="DM Sans,sans-serif" font-size="6" fill="#888" text-anchor="middle">6</text>
+          <text x="155" y="83" font-family="DM Sans,sans-serif" font-size="6.5" fill="#888">z</text>
+          <!-- sigmoid S-curve -->
+          <polyline points="20,80 31,80 42,79 52,77 63,72 74,61 85,45 96,29 107,18 117,13 128,11 139,10 150,10"
+                    fill="none" stroke="#0C447C" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+          <!-- example point: z=4, σ=0.982 -->
+          <line x1="128" y1="80" x2="128" y2="11" stroke="#C74848" stroke-width="0.8" stroke-dasharray="2,2"/>
+          <line x1="85"  y1="11" x2="128" y2="11" stroke="#C74848" stroke-width="0.8" stroke-dasharray="2,2"/>
+          <circle cx="128" cy="11" r="3" fill="#C74848"/>
+          <text x="130" y="10" font-family="DM Sans,sans-serif" font-size="6" fill="#C74848">0.982</text>
+          <text x="128" y="97" font-family="DM Sans,sans-serif" font-size="6" fill="#C74848" text-anchor="middle">z=4</text>
+        </svg>
+      </div>
+
+      <!-- Right: step-by-step calculation -->
+      <div style="flex:1;">
+        <div class="step-item"><span class="step-num">1</span><div><strong>Set up the input vector</strong><br>
+          Features: number of &lsquo;$&rsquo; = 5, number of &lsquo;!&rsquo; = 2<br>
+          <code>x = (5, 2)</code> &nbsp;&nbsp; <code>w = (1, 2)</code> &nbsp;&nbsp; <code>b = &minus;5</code>
+        </div></div>
+        <div class="step-item"><span class="step-num">2</span><div><strong>Compute the linear combination z = w &middot; x + b</strong><br>
+          <code>z = (1&times;5) + (2&times;2) + (&minus;5)</code><br>
+          <code>z = 5 + 4 &minus; 5 = <strong>4</strong></code>
+        </div></div>
+        <div class="step-item"><span class="step-num">3</span><div><strong>Apply the sigmoid function</strong><br>
+          <code>&sigma;(z) = 1 / (1 + e<sup>&minus;4</sup>)</code><br>
+          <code>e<sup>&minus;4</sup> &asymp; 0.0183</code><br>
+          <code>&sigma;(4) = 1 / 1.0183 &asymp; <strong>0.982</strong></code>
+        </div></div>
+        <div class="step-item"><span class="step-num">4</span><div><strong>Threshold to get the predicted class</strong><br>
+          <code>ŷ = 0.982 &ge; 0.5</code> &rarr; predicted class = <strong>1 (spam)</strong><br>
+          The model is 98.2% confident this email is spam.
+        </div></div>
+        <div class="wl" style="margin-top:6px;"><strong>Note:</strong> z = 4 is far to the right of 0 on the sigmoid curve — the output is very close to 1. If z were 0 (e.g. the features exactly cancelled the bias), ŷ = 0.5 and the model would be maximally uncertain.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 8: Gradient Descent & Parallel GD -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">8</span> Gradient Descent &amp; Parallel Gradient Descent in Spark</div>
+
+    <p><strong>Gradient Descent — Intuition</strong></p>
+    <p>The loss surface J(w, b) is a landscape of hills and valleys. Gradient descent starts at a random point on that landscape and iteratively takes small steps in the direction of steepest descent (opposite to the gradient) until it reaches a minimum.</p>
+
+    <div class="step-item"><span class="step-num">1</span><div>Initialise weights w randomly (or to zero).</div></div>
+    <div class="step-item"><span class="step-num">2</span><div>Compute the gradient of J with respect to w — this tells us which direction increases the loss.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div>Move w in the <em>opposite</em> direction by a small amount controlled by the <strong>learning rate</strong> α (step size).</div></div>
+    <div class="step-item"><span class="step-num">4</span><div>Repeat until the improvement in J falls below a threshold (convergence).</div></div>
+
+    <div class="code-block"><span class="cm"># Update rule (vectorised over all n training samples with d features)</span>
+<span class="cm"># w is a d-dimensional weight vector</span>
+
+w<sup>(i+1)</sup>  ←  w<sup>(i)</sup>  −  α · (1/n) · Xᵀ · (σ(Xw) − y)
+
+<span class="cm"># α       = learning rate (step size)</span>
+<span class="cm"># X       = (n × d) feature matrix</span>
+<span class="cm"># y       = (n × 1) true label vector</span>
+<span class="cm"># σ(Xw)  = (n × 1) vector of predicted probabilities</span>
+<span class="cm"># Xᵀ · (σ(Xw) − y)  = gradient (direction of steepest ascent in loss)</span></div>
+
+    <div class="wl"><strong>Exam trap:</strong> Gradient descent is <em>iterative</em> — it requires multiple passes over the full training set. This is exactly what makes it expensive on big data and why we need Spark to parallelize it.</div>
+
+    <div class="divider"></div>
+
+    <p><strong>Parallel Gradient Descent in Spark</strong></p>
+    <p>The key insight: the gradient is a <em>sum</em> over all training examples. Sums are trivially parallelisable — split the data, compute partial sums on each node, then aggregate.</p>
+
+    <div class="phase-row">
+      <div class="phase-box ph-purple">
+        <div class="phase-title">Broadcast Weights</div>
+        <div class="phase-desc">Driver broadcasts current weight vector w to all worker nodes. w is a small vector (d floats) — cheap to send.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Local Gradient</div>
+        <div class="phase-desc">Each worker computes the gradient on its own partition of the training data using the received w. No inter-worker communication needed here.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">Aggregate</div>
+        <div class="phase-desc">All partial gradients are summed back at the driver (reduce step). Driver averages and updates w.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-blue">
+        <div class="phase-title">Repeat</div>
+        <div class="phase-desc">Loop until convergence. Training data is cached in memory — each iteration reads from the cache, not disk.</div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Broadcast Variable</div>
+        <div class="card-body">The weight vector w is a <strong>broadcast variable</strong> — Spark sends it efficiently to all nodes at the start of each iteration, and workers read it from their local cache rather than fetching it from the driver per record.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Cached Training Data</div>
+        <div class="card-body">Training data is <code>.cache()</code>-d so it lives in memory across all gradient descent iterations. Without caching, Spark would re-read data from disk on every iteration — catastrophically slow.</div>
+      </div>
+    </div>
+
+    <div class="hl"><strong>Why this scales:</strong> The training data (large) is partitioned and stays on workers. Only the weight vector (tiny — d numbers) crosses the network each iteration. Communication cost is O(d), not O(n).</div>
+
+    <div class="divider"></div>
+
+    <p><strong>Worked example — n = 6 samples, 3 workers (from slide 44)</strong></p>
+    <p style="font-size:9pt; color:var(--text-muted); margin-bottom:7px;">Continuing the spam example. Features: x<sub>1</sub> = number of &lsquo;$&rsquo;, x<sub>2</sub> = number of &lsquo;!&rsquo;. Current weights: <strong>w = (0, 0)</strong> (untrained). Learning rate: <strong>&alpha; = 0.1</strong>. Since w = (0,0), &sigma;(x &middot; w) = &sigma;(0) = 0.5 for every sample.</p>
+
+    <!-- Step 1: Training data partitioned across 3 workers -->
+    <p style="font-size:8.5pt; font-weight:600; margin-bottom:5px;">Step 1 &mdash; Driver broadcasts w = (0, 0) to all workers. Training data is cached in partitions:</p>
+    <div class="grid3" style="margin-bottom:6px;">
+      <div style="border:1.5px solid var(--teal); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--teal); color:#fff; padding:3px 10px; font-size:7.5pt; font-weight:600; text-align:center;">Worker 1 — samples j=1, j=5</div>
+        <div style="background:var(--teal-light); padding:7px 10px;">
+          <table class="cmp" style="margin-bottom:0;">
+            <tr><th>j</th><th>x<sub>1</sub></th><th>x<sub>2</sub></th><th>y</th></tr>
+            <tr><td>1</td><td>5</td><td>2</td><td>1</td></tr>
+            <tr><td>5</td><td>3</td><td>1</td><td>1</td></tr>
+          </table>
+        </div>
+      </div>
+      <div style="border:1.5px solid var(--teal); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--teal); color:#fff; padding:3px 10px; font-size:7.5pt; font-weight:600; text-align:center;">Worker 2 — samples j=3, j=4</div>
+        <div style="background:var(--teal-light); padding:7px 10px;">
+          <table class="cmp" style="margin-bottom:0;">
+            <tr><th>j</th><th>x<sub>1</sub></th><th>x<sub>2</sub></th><th>y</th></tr>
+            <tr><td>3</td><td>4</td><td>3</td><td>1</td></tr>
+            <tr><td>4</td><td>0</td><td>1</td><td>0</td></tr>
+          </table>
+        </div>
+      </div>
+      <div style="border:1.5px solid var(--teal); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--teal); color:#fff; padding:3px 10px; font-size:7.5pt; font-weight:600; text-align:center;">Worker 3 — samples j=2, j=6</div>
+        <div style="background:var(--teal-light); padding:7px 10px;">
+          <table class="cmp" style="margin-bottom:0;">
+            <tr><th>j</th><th>x<sub>1</sub></th><th>x<sub>2</sub></th><th>y</th></tr>
+            <tr><td>2</td><td>1</td><td>0</td><td>0</td></tr>
+            <tr><td>6</td><td>2</td><td>0</td><td>0</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Map — each worker computes local gradient -->
+    <p style="font-size:8.5pt; font-weight:600; margin-bottom:4px;">Step 2 &mdash; Map: each worker independently computes its partial gradient using [&sigma;(x<sup>(j)</sup> &middot; w) &minus; y<sup>(j)</sup>] &times; x<sup>(j)</sup></p>
+    <p style="font-size:8pt; color:var(--text-muted); margin-bottom:5px;">Since w = (0,0), &sigma;(0) = 0.5 for all samples, so the error term is simply (0.5 &minus; y).</p>
+    <div class="grid3" style="margin-bottom:6px;">
+      <div style="border:1.5px solid var(--purple); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--purple); color:#fff; padding:3px 10px; font-size:7.5pt; font-weight:600; text-align:center;">Worker 1 local gradient</div>
+        <div style="background:var(--purple-light); padding:7px 10px; font-size:8.5pt;">
+          j=1: (0.5&minus;1)&times;(5,2) = <strong>(&minus;2.5, &minus;1.0)</strong><br>
+          j=5: (0.5&minus;1)&times;(3,1) = <strong>(&minus;1.5, &minus;0.5)</strong><br>
+          <div style="border-top:1px solid var(--border); margin-top:4px; padding-top:4px;">
+          Subtotal: <strong>(&minus;4.0, &minus;1.5)</strong>
+          </div>
+        </div>
+      </div>
+      <div style="border:1.5px solid var(--purple); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--purple); color:#fff; padding:3px 10px; font-size:7.5pt; font-weight:600; text-align:center;">Worker 2 local gradient</div>
+        <div style="background:var(--purple-light); padding:7px 10px; font-size:8.5pt;">
+          j=3: (0.5&minus;1)&times;(4,3) = <strong>(&minus;2.0, &minus;1.5)</strong><br>
+          j=4: (0.5&minus;0)&times;(0,1) = <strong>(0.0, +0.5)</strong><br>
+          <div style="border-top:1px solid var(--border); margin-top:4px; padding-top:4px;">
+          Subtotal: <strong>(&minus;2.0, &minus;1.0)</strong>
+          </div>
+        </div>
+      </div>
+      <div style="border:1.5px solid var(--purple); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--purple); color:#fff; padding:3px 10px; font-size:7.5pt; font-weight:600; text-align:center;">Worker 3 local gradient</div>
+        <div style="background:var(--purple-light); padding:7px 10px; font-size:8.5pt;">
+          j=2: (0.5&minus;0)&times;(1,0) = <strong>(+0.5, 0.0)</strong><br>
+          j=6: (0.5&minus;0)&times;(2,0) = <strong>(+1.0, 0.0)</strong><br>
+          <div style="border-top:1px solid var(--border); margin-top:4px; padding-top:4px;">
+          Subtotal: <strong>(+1.5, 0.0)</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Reduce + Update -->
+    <p style="font-size:8.5pt; font-weight:600; margin-bottom:4px;">Step 3 &mdash; Reduce: driver sums all partial gradients, then updates w</p>
+    <div class="grid2">
+      <div style="border:1.5px solid var(--amber); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--amber); color:#fff; padding:3px 10px; font-size:7.5pt; font-weight:600; text-align:center;">Reduce — aggregate partial gradients</div>
+        <div style="background:var(--amber-light); padding:8px 10px; font-size:8.5pt; line-height:1.8;">
+          (&minus;4.0, &minus;1.5) &nbsp;[Worker 1]<br>
+          + (&minus;2.0, &minus;1.0) &nbsp;[Worker 2]<br>
+          + (+1.5, &nbsp;0.0) &nbsp;[Worker 3]<br>
+          <div style="border-top:1px solid var(--amber); margin-top:4px; padding-top:4px; font-weight:600;">
+            Total gradient = (<strong>&minus;4.5, &minus;2.5</strong>)
+          </div>
+        </div>
+      </div>
+      <div style="border:1.5px solid var(--blue); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--blue); color:#fff; padding:3px 10px; font-size:7.5pt; font-weight:600; text-align:center;">Update — new weights</div>
+        <div style="background:var(--blue-light); padding:8px 10px; font-size:8.5pt; line-height:1.8;">
+          w<sub>new</sub> = w<sub>old</sub> &minus; &alpha; &times; gradient<br>
+          w<sub>new</sub> = (0, 0) &minus; 0.1 &times; (&minus;4.5, &minus;2.5)<br>
+          <div style="border-top:1px solid var(--blue); margin-top:4px; padding-top:4px; font-weight:600;">
+            w<sub>new</sub> = (<strong>+0.45, +0.25</strong>)
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="hl" style="margin-top:6px;">After just one iteration both weights became <strong>positive</strong> — the model has started to learn that more &lsquo;$&rsquo; signs and &lsquo;!&rsquo; marks increase the spam probability. In practice this loop repeats hundreds of times until w converges.</div>
+  </div>
+
+  <!-- Section 9: Model Evaluation -->
+  <div class="section">
+    <div class="section-title"><span class="badge bb">9</span> Model Evaluation Metrics</div>
+
+    <p><strong>Classification — Confusion Matrix</strong></p>
+    <div style="display:flex; gap:16px; align-items:flex-start; margin-bottom:9px;">
+
+      <!-- Confusion matrix table -->
+      <div style="flex-shrink:0;">
+        <table style="border-collapse:collapse; font-size:9pt; text-align:center;">
+          <!-- top header: Predicted -->
+          <tr>
+            <td style="border:none; padding:4px;"></td>
+            <td style="border:none; padding:4px;"></td>
+            <td colspan="2" style="border:none; padding:4px 10px; font-weight:600; color:var(--blue);">Predicted</td>
+          </tr>
+          <tr>
+            <td style="border:none; padding:4px;"></td>
+            <td style="border:none; padding:4px;"></td>
+            <td style="border:0.75px solid var(--border); padding:6px 16px; font-weight:600; background:var(--blue-light); color:var(--blue);">Positive</td>
+            <td style="border:0.75px solid var(--border); padding:6px 16px; font-weight:600; background:var(--blue-light); color:var(--blue);">Negative</td>
+          </tr>
+          <!-- row: Actual Positive -->
+          <tr>
+            <td rowspan="2" style="border:none; padding:4px; font-weight:600; color:var(--teal); writing-mode:vertical-lr; transform:rotate(180deg); text-align:center; letter-spacing:0.5px;">Actual</td>
+            <td style="border:0.75px solid var(--border); padding:6px 14px; font-weight:600; background:var(--teal-light); color:var(--teal);">Positive</td>
+            <td style="border:0.75px solid var(--border); padding:10px 16px; background:var(--green-light); color:var(--green); font-weight:600; font-size:10pt;">TP</td>
+            <td style="border:0.75px solid var(--border); padding:10px 16px; background:var(--red-light); color:var(--red); font-weight:600; font-size:10pt;">FN</td>
+          </tr>
+          <!-- row: Actual Negative -->
+          <tr>
+            <td style="border:0.75px solid var(--border); padding:6px 14px; font-weight:600; background:var(--teal-light); color:var(--teal);">Negative</td>
+            <td style="border:0.75px solid var(--border); padding:10px 16px; background:var(--red-light); color:var(--red); font-weight:600; font-size:10pt;">FP</td>
+            <td style="border:0.75px solid var(--border); padding:10px 16px; background:var(--green-light); color:var(--green); font-weight:600; font-size:10pt;">TN</td>
+          </tr>
+        </table>
+        <p style="font-size:7.5pt; color:var(--text-muted); margin-top:4px; text-align:center;"><span style="color:var(--green); font-weight:600;">Green</span> = correct &nbsp;|&nbsp; <span style="color:var(--red); font-weight:600;">Red</span> = wrong</p>
+      </div>
+
+      <!-- Definitions -->
+      <div style="flex:1; font-size:9pt; line-height:1.7;">
+        <div style="margin-bottom:4px;"><strong style="color:var(--green);">TP — True Positive:</strong> predicted Positive, actually Positive. Correct.</div>
+        <div style="margin-bottom:4px;"><strong style="color:var(--green);">TN — True Negative:</strong> predicted Negative, actually Negative. Correct.</div>
+        <div style="margin-bottom:4px;"><strong style="color:var(--red);">FP — False Positive:</strong> predicted Positive, actually Negative. &ldquo;False alarm.&rdquo;</div>
+        <div style="margin-bottom:8px;"><strong style="color:var(--red);">FN — False Negative:</strong> predicted Negative, actually Positive. &ldquo;Missed detection.&rdquo;</div>
+        <div class="il" style="margin-bottom:0; font-size:8.5pt;">In spam detection: FP = good email wrongly flagged as spam. FN = spam that slipped through. Both are errors but with different costs.</div>
+      </div>
+
+    </div>
+
+    <div class="code-block">Accuracy  = (TP + TN) / (TP + FP + FN + TN)
+            <span class="cm"># fraction of all predictions that are correct</span>
+
+Precision = TP / (TP + FP)
+            <span class="cm"># of all predicted positives, how many are actually positive?</span>
+
+Recall    = TP / (TP + FN)
+            <span class="cm"># of all actual positives, how many did we catch?</span>
+
+F1 Score  = 2 × (Precision × Recall) / (Precision + Recall)
+            <span class="cm"># harmonic mean of precision and recall; balances precision and recall</span></div>
+
+    <div class="il"><strong>Precision vs Recall trade-off:</strong> In spam detection, high precision = rarely flag good email as spam (few false alarms). High recall = rarely miss actual spam. Lowering the classification threshold increases recall but lowers precision. F1 balances both.</div>
+
+    <p><strong>Regression Evaluation</strong></p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">MAE — Mean Absolute Error</div>
+        <div class="card-body">
+          <div style="text-align:center; font-size:10pt; margin:4px 0 6px; color:var(--text);">MAE = <sup>1</sup>&frasl;<sub>n</sub> &sum;<sub>i</sub> |ŷ<sub>i</sub> &minus; y<sub>i</sub>|</div>
+          Average of |ŷᵢ − yᵢ|. Lower is better. Easy to interpret in original units. Less sensitive to outliers.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">MSE / RMSE — Mean Squared Error</div>
+        <div class="card-body">
+          <div style="text-align:center; font-size:10pt; margin:4px 0 6px; color:var(--text);">MSE = <sup>1</sup>&frasl;<sub>n</sub> &sum;<sub>i</sub> (ŷ<sub>i</sub> &minus; y<sub>i</sub>)<sup>2</sup></div>
+          Average of (ŷᵢ − yᵢ)². Lower is better. Penalises large errors heavily. RMSE = √MSE — back in original units.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">R² — Coefficient of Determination</div>
+        <div class="card-body">
+          <div style="text-align:center; font-size:10pt; margin:4px 0 6px; color:var(--text);">R² = 1 &minus; SS<sub>res</sub> / SS<sub>tot</sub></div>
+          <div style="font-size:8.5pt; margin-bottom:5px;">
+            <strong>SS<sub>res</sub></strong> = &sum;(y<sub>i</sub> &minus; ŷ<sub>i</sub>)² &nbsp;&mdash;&nbsp; error from your model<br>
+            <strong>SS<sub>tot</sub></strong> = &sum;(y<sub>i</sub> &minus; ȳ)² &nbsp;&mdash;&nbsp; error from always predicting the mean
+          </div>
+          Higher is better. Measures what fraction of the spread in y your model explains. The baseline is "always predict the mean ȳ" — R² compares your model against that.
+          <div style="margin-top:5px;">
+            <span style="color:var(--green); font-weight:600;">R²=1</span> — perfect fit. &nbsp;
+            <span style="color:var(--text-muted); font-weight:600;">R²=0</span> — no better than predicting the mean. &nbsp;
+            <span style="color:var(--red); font-weight:600;">R²&lt;0</span> — worse than predicting the mean (SS<sub>res</sub> &gt; SS<sub>tot</sub>), usually signals a broken model.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:9pt; font-weight:600; margin-bottom:4px;">Why R² can go negative — worked example</p>
+    <div class="grid2">
+      <div style="border:1.5px solid var(--teal); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--teal); color:#fff; padding:3px 12px; font-size:7.5pt; font-weight:600; text-align:center;">Baseline — always predict the mean ȳ = 3</div>
+        <div style="background:var(--teal-light); padding:8px 10px; font-size:8.5pt; line-height:1.8;">
+          Actual y = [1, 2, 3, 4, 5], &nbsp; ȳ = 3<br>
+          Errors = |1&minus;3|², |2&minus;3|², |3&minus;3|², |4&minus;3|², |5&minus;3|²<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 4 + 1 + 0 + 1 + 4<br>
+          <strong>SS<sub>tot</sub> = 10</strong>
+        </div>
+      </div>
+      <div style="border:1.5px solid var(--red); border-radius:7px; overflow:hidden;">
+        <div style="background:var(--red); color:#fff; padding:3px 12px; font-size:7.5pt; font-weight:600; text-align:center;">Terrible model predictions = [5, 1, 5, 1, 5]</div>
+        <div style="background:var(--red-light); padding:8px 10px; font-size:8.5pt; line-height:1.8;">
+          Errors = |1&minus;5|², |2&minus;1|², |3&minus;5|², |4&minus;1|², |5&minus;5|²<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = 16 + 1 + 4 + 9 + 0<br>
+          <strong>SS<sub>res</sub> = 30</strong><br>
+          R² = 1 &minus; (30 / 10) = 1 &minus; 3 = <strong style="color:var(--red);">&minus;2</strong>
+        </div>
+      </div>
+    </div>
+    <div class="wl">The model's predictions are so wrong that you would genuinely get a better result by ignoring all features and just guessing the mean every time. In practice R² &lt; 0 almost always means something went wrong — mismatched train/test data, features with no relationship to y, or a pipeline bug.</div>
+  </div>
+
+  <!-- Section 10: Spark ML Pipelines -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">10</span> Spark ML Pipelines — Transformers &amp; Estimators</div>
+
+    <div class="hl"><strong>Core insight:</strong> A <strong>Pipeline</strong> chains simple building blocks (Transformers and Estimators) into a reproducible, reusable ML workflow. The same pipeline object handles both training and inference — keeping preprocessing and model steps in sync automatically.</div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Transformer</div>
+        <div class="card-body">
+          An object that maps a DataFrame to another DataFrame — it <em>transforms</em> data.<br><br>
+          <strong>Method:</strong> <code>transform(df) → df'</code><br><br>
+          Examples: <code>OneHotEncoder</code>, <code>StandardScaler</code>, <code>Tokenizer</code>.<br><br>
+          A <em>fitted model</em> (e.g. a trained LogisticRegression) is also a Transformer — it appends a predictions column.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Estimator</div>
+        <div class="card-body">
+          An object that takes data and <em>learns</em> from it, producing a fitted Transformer.<br><br>
+          <strong>Method:</strong> <code>fit(df) → Transformer</code><br><br>
+          Examples: <code>LogisticRegression</code>, <code>StandardScaler</code> (fit learns mean &amp; std), <code>Imputer</code> (fit learns medians).<br><br>
+          Note: many preprocessing steps are Estimators at fit time, Transformers at transform time.
+        </div>
+      </div>
+    </div>
+
+    <p><strong>Pipeline at Training Time</strong></p>
+    <p>A <code>Pipeline</code> is itself an Estimator. When you call <code>Pipeline.fit(training_data)</code>, it walks through each stage in order:</p>
+
+    <div class="step-item"><span class="step-num">1</span><div>If the current stage is a <strong>Transformer</strong>, call <code>stage.transform(data)</code> and pass the result to the next stage.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div>If the current stage is an <strong>Estimator</strong>, call <code>stage.fit(data)</code> to get a fitted model (a Transformer), then immediately call <code>fitted_model.transform(data)</code> and pass that result to the next stage.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div><code>Pipeline.fit()</code> returns a <strong>PipelineModel</strong> — a sequence of the fitted Transformers produced in step 2.</div></div>
+
+    <p><strong>Pipeline at Test / Inference Time</strong></p>
+    <p>A <code>PipelineModel</code> is a Transformer. Calling <code>pipeline_model.transform(test_data)</code> runs each fitted Transformer's <code>transform()</code> in order — applying exactly the same preprocessing and model that was fit during training.</p>
+
+    <div class="code-block"><span class="kw">from</span> pyspark.ml <span class="kw">import</span> Pipeline
+<span class="kw">from</span> pyspark.ml.feature <span class="kw">import</span> StringIndexer, OneHotEncoder, VectorAssembler
+<span class="kw">from</span> pyspark.ml.classification <span class="kw">import</span> LogisticRegression
+
+<span class="cm"># Define stages</span>
+indexer = <span class="fn">StringIndexer</span>(inputCol=<span class="st">"category"</span>, outputCol=<span class="st">"cat_index"</span>)
+encoder = <span class="fn">OneHotEncoder</span>(inputCol=<span class="st">"cat_index"</span>, outputCol=<span class="st">"cat_ohe"</span>)
+assembler = <span class="fn">VectorAssembler</span>(inputCols=[<span class="st">"cat_ohe"</span>, <span class="st">"age"</span>, <span class="st">"income"</span>], outputCol=<span class="st">"features"</span>)
+lr = <span class="fn">LogisticRegression</span>(maxIter=<span class="nm">10</span>, labelCol=<span class="st">"label"</span>)
+
+<span class="cm"># Chain into a pipeline</span>
+pipeline = <span class="fn">Pipeline</span>(stages=[indexer, encoder, assembler, lr])
+
+<span class="cm"># Training: fit on training data → PipelineModel</span>
+pipeline_model = pipeline.<span class="fn">fit</span>(train_df)
+
+<span class="cm"># Inference: transform test data (applies same pipeline)</span>
+predictions = pipeline_model.<span class="fn">transform</span>(test_df)</div>
+
+    <p><strong>Why use Pipelines?</strong></p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title"><span class="tag tg">✓</span> Code reuse</div>
+        <div class="card-body">Without pipelines, you must manually apply the same preprocessing steps during training, validation, and test — and keep them in sync by hand. A pipeline does this automatically.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="tag tg">✓</span> Cross-validation &amp; hyperparameter tuning</div>
+        <div class="card-body">Spark's <code>CrossValidator</code> and <code>TrainValidationSplit</code> expect an Estimator — passing a full Pipeline means preprocessing is refitted correctly on each fold, preventing data leakage.</div>
+      </div>
+    </div>
+
+    <div class="wl"><strong>Data leakage warning:</strong> If you fit your scaler or imputer on the full dataset before splitting into train/test, statistics from the test set "leak" into the training process. Always fit preprocessing inside the pipeline so it only sees training data.</div>
+  </div>
+
+  <!-- Section 11: Comparison Table -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">11</span> Comparison Tables</div>
+
+    <p><strong>Transformer vs Estimator</strong></p>
+    <table class="cmp">
+      <tr><th>Dimension</th><th>Transformer</th><th>Estimator</th></tr>
+      <tr><td><strong>Purpose</strong></td><td>Transforms one DataFrame into another</td><td>Learns from data to produce a Transformer</td></tr>
+      <tr><td><strong>Key method</strong></td><td><code>transform(df) → df'</code></td><td><code>fit(df) → Transformer</code></td></tr>
+      <tr><td><strong>Examples</strong></td><td>OneHotEncoder, Tokenizer, fitted model</td><td>LogisticRegression, StandardScaler, Imputer</td></tr>
+      <tr><td><strong>Has learnable params?</strong></td><td>No (already fixed)</td><td>Yes (learns params during <code>fit()</code>)</td></tr>
+      <tr><td><strong>In a Pipeline</strong></td><td>transform() called directly</td><td>fit() called first, then transform()</td></tr>
+    </table>
+
+    <div class="divider"></div>
+
+    <p><strong>Classification vs Regression Evaluation</strong></p>
+    <table class="cmp">
+      <tr><th>Metric</th><th>Task</th><th>Formula</th><th>Good value</th></tr>
+      <tr><td><strong>Accuracy</strong></td><td>Classification</td><td>(TP+TN)/(TP+FP+FN+TN)</td><td>Higher</td></tr>
+      <tr><td><strong>Precision</strong></td><td>Classification</td><td>TP / (TP+FP)</td><td>Higher</td></tr>
+      <tr><td><strong>Recall</strong></td><td>Classification</td><td>TP / (TP+FN)</td><td>Higher</td></tr>
+      <tr><td><strong>F1 Score</strong></td><td>Classification</td><td>2·(P·R)/(P+R)</td><td>Higher</td></tr>
+      <tr><td><strong>MAE</strong></td><td>Regression</td><td>mean(|ŷ−y|)</td><td>Lower</td></tr>
+      <tr><td><strong>RMSE</strong></td><td>Regression</td><td>√mean((ŷ−y)²)</td><td>Lower</td></tr>
+      <tr><td><strong>R²</strong></td><td>Regression</td><td>1 − SS<sub>res</sub>/SS<sub>tot</sub></td><td>Higher (→1)</td></tr>
+    </table>
+  </div>
+
+  <!-- Section 12: Exam Q&A -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">12</span> Exam-Style Q&amp;A</div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Why do Python and Scala DataFrames have the same performance, while Python RDDs are slower than Scala RDDs?</div>
+      <div class="qa-a">With DataFrames, Spark SQL's Catalyst Optimizer generates the same JVM bytecode (via Project Tungsten's whole-stage code generation) regardless of the language used to write the query. Python is only used to construct the logical plan — execution happens entirely in the JVM. With RDDs, Python user functions must be executed by a Python process (via PySpark serialization), incurring serialization/deserialization overhead per record.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What are the four phases of the Catalyst Optimizer? Briefly describe each.</div>
+      <div class="qa-a">(1) <strong>Analysis</strong> — resolve column names and types against the schema to produce a resolved logical plan. (2) <strong>Logical optimisation</strong> — apply rule-based transformations such as predicate pushdown, constant folding, and column pruning. (3) <strong>Physical planning</strong> — enumerate multiple physical execution strategies (e.g. broadcast join vs sort-merge join) and select the cheapest using a cost model. (4) <strong>Code generation</strong> (Project Tungsten) — compile the chosen physical plan into optimised JVM bytecode for execution.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: How does Spark parallelise gradient descent for logistic regression?</div>
+      <div class="qa-a">The weight vector w is broadcast to all worker nodes (it is a small d-dimensional vector). The training data is partitioned across workers and cached in memory. Each worker computes the gradient of the loss on its own partition. The partial gradients are aggregated (summed) back to the driver, which averages them, multiplies by the learning rate α, and subtracts from w to get the updated weights. This loop repeats until convergence. The key efficiency: only w (d numbers) crosses the network each iteration, not the full training set.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Distinguish Precision and Recall. When would you prioritise each?</div>
+      <div class="qa-a"><strong>Precision</strong> = TP/(TP+FP) — of everything the model called positive, how many actually were? High precision means few false alarms. <strong>Recall</strong> = TP/(TP+FN) — of all actual positives, how many did the model find? High recall means few misses. Prioritise <em>precision</em> when false positives are costly (e.g. spam filter — you don't want to lose legitimate emails). Prioritise <em>recall</em> when false negatives are costly (e.g. cancer screening — you don't want to miss a real case).</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is the difference between a Transformer and an Estimator in Spark ML?</div>
+      <div class="qa-a">A <strong>Transformer</strong> maps a DataFrame to a new DataFrame via <code>transform()</code> — it has no learning step (its parameters are already fixed). A <strong>Estimator</strong> has a <code>fit(df)</code> method which learns parameters from data and returns a fitted Transformer. In a Pipeline, Estimator stages are fit on training data and then converted to Transformers; at test time the PipelineModel runs only the Transformer <code>transform()</code> steps in sequence.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is the danger of fitting preprocessing (e.g. StandardScaler) on the full dataset before splitting into train and test?</div>
+      <div class="qa-a">This causes <strong>data leakage</strong>: the scaler's mean and standard deviation are computed using test-set values, so the model indirectly "sees" the test data during training. This gives an optimistically biased estimate of model performance. The correct approach is to fit the scaler <em>only on training data</em>, then apply (transform) it to both train and test. Using Spark ML Pipelines with CrossValidator ensures this is done correctly on each fold.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: When should you use One-Hot Encoding instead of Ordinal Encoding?</div>
+      <div class="qa-a">Use One-Hot Encoding when the categorical feature has <strong>no natural order</strong> among its values (e.g. country, colour, product category). Ordinal encoding assigns integer codes that imply a numeric ordering; if no such ordering exists, the model may incorrectly learn that one category is "greater" than another. OHE avoids this by creating separate binary features — one per category — with no implied ordering.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

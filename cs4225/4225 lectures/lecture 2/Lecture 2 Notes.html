@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 2 – Principles of Big Data Systems</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --accent2: #f78166;
+    --accent3: #56d364;
+    --accent4: #e3b341;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --tag-bg: #1f3a5f;
+    --tag-text: #79c0ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── Header ── */
+  .course-badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: 'IBM Plex Mono', monospace;
+    margin-bottom: 32px;
+  }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 40px;
+  }
+
+  .toc-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .toc ol { padding-left: 18px; }
+  .toc li { margin-bottom: 4px; }
+  .toc a {
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ── Sections ── */
+  .section {
+    margin-bottom: 48px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent);
+    margin: 24px 0 10px;
+  }
+
+  p { margin-bottom: 12px; color: var(--text); }
+
+  /* ── Key concept boxes ── */
+  .key-box {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 14px 18px;
+    margin: 16px 0;
+  }
+
+  .key-box.orange { border-color: var(--accent2); }
+  .key-box.green  { border-color: var(--accent3); }
+  .key-box.yellow { border-color: var(--accent4); }
+
+  .key-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  /* ── Tables ── */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 16px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  th {
+    background: var(--surface2);
+    color: var(--accent);
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+
+  .good { color: var(--accent3); }
+  .bad  { color: var(--accent2); }
+
+  /* ── Code / formula ── */
+  code {
+    font-family: 'IBM Plex Mono', monospace;
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--accent4);
+  }
+
+  /* ── Diagrams ── */
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 2;
+    overflow-x: auto;
+  }
+
+  .diagram .arrow { color: var(--accent); }
+  .diagram .node  { color: var(--accent4); }
+  .diagram .label { color: var(--text-muted); font-size: 11px; }
+
+  /* ── Quiz ── */
+  .quiz {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    margin: 20px 0;
+  }
+
+  .quiz-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent4);
+    margin-bottom: 8px;
+  }
+
+  .quiz p { margin-bottom: 8px; }
+
+  .quiz .answer {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .quiz .answer strong { color: var(--accent3); }
+
+  /* ── Big Ideas cards ── */
+  .ideas-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 16px 0;
+  }
+
+  @media (max-width: 600px) { .ideas-grid { grid-template-columns: 1fr; } }
+
+  .idea-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .idea-card .idea-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .idea-card .idea-title {
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .idea-card p { font-size: 13.5px; color: var(--text-muted); margin: 0; }
+
+  /* ── Summary bar ── */
+  .summary-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+
+  .summary-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--text);
+  }
+
+  .summary-pill span { color: var(--accent); font-weight: 600; }
+
+  /* ── Exam tip ── */
+  .exam-tip {
+    background: #1a2a1a;
+    border: 1px solid #3a5a3a;
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 13.5px;
+  }
+
+  .exam-tip::before {
+    content: "🎯 EXAM TIP — ";
+    font-weight: 700;
+    color: var(--accent3);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+<div class="course-badge">CS4225 / CS5425 · Big Data Systems for Data Science</div>
+<h1><span>Lecture 2</span> — Principles of Big Data Systems</h1>
+<div class="subtitle">// study notes · Prof. Bingsheng He · NUS School of Computing</div>
+
+<div class="toc">
+  <div class="toc-title">Contents</div>
+  <ol>
+    <li><a href="#recap">Recap: 4 V's, Utility Computing & XaaS</a></li>
+    <li><a href="#datacenter">Data Center Architecture</a></li>
+    <li><a href="#latency-bw">Latency vs. Bandwidth</a></li>
+    <li><a href="#storage">Storage Hierarchy & Data Access Costs</a></li>
+    <li><a href="#paths">Data Flow Paths (4 Cases)</a></li>
+    <li><a href="#bigideas">The Four Big Ideas</a></li>
+    <li><a href="#abstractions">Abstractions for Big Data Systems</a></li>
+    <li><a href="#quiz">Quiz Questions & Answers</a></li>
+  </ol>
+</div>
+
+<!-- ─────────────────────────── SECTION 1 ─────────────────────────── -->
+<div class="section" id="recap">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <h2>Recap — 4 V's, Utility Computing & XaaS</h2>
+  </div>
+
+  <h3>The 4 V's of Big Data</h3>
+  <p>Big data is characterised by four dimensions (from Lecture 1):</p>
+  <div class="table-wrap">
+    <table>
+      <tr><th>V</th><th>Meaning</th><th>Example</th></tr>
+      <tr><td>Volume</td><td>Massive amounts of data</td><td>Terabytes to petabytes of logs</td></tr>
+      <tr><td>Velocity</td><td>Data generated at high speed</td><td>Twitter streams, sensor feeds</td></tr>
+      <tr><td>Variety</td><td>Many different data formats</td><td>Text, images, JSON, video</td></tr>
+      <tr><td>Veracity</td><td>Uncertainty / quality of data</td><td>Noisy sensor readings</td></tr>
+    </table>
+  </div>
+
+  <h3>Utility Computing</h3>
+  <div class="key-box">
+    <div class="key-label">Definition</div>
+    Utility computing = treating computing resources like a utility (electricity, water). You <strong>pay as you go</strong> and can <strong>dynamically provision</strong> virtual machines on demand.
+  </div>
+  <p><strong>Why it matters:</strong></p>
+  <p>→ <strong>Scalability</strong>: theoretically "infinite" capacity — you can always rent more VMs.</p>
+  <p>→ <strong>Elasticity</strong>: scale up during peak load, scale down when idle. No wasted hardware.</p>
+
+  <h3>Everything as a Service (XaaS)</h3>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Model</th><th>What it means</th><th>Example</th></tr>
+      <tr>
+        <td>IaaS</td>
+        <td>You rent a VM and control everything on it</td>
+        <td>Amazon EC2, Google Compute Engine, Rackspace</td>
+      </tr>
+      <tr>
+        <td>PaaS</td>
+        <td>You provide your web app; the platform handles hardware, upgrades, hosting</td>
+        <td>Google App Engine</td>
+      </tr>
+      <tr>
+        <td>SaaS</td>
+        <td>You just use a finished application; no coding required</td>
+        <td>Gmail, Dropbox, Zoom</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<!-- ─────────────────────────── SECTION 2 ─────────────────────────── -->
+<div class="section" id="datacenter">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <h2>Data Center Architecture</h2>
+  </div>
+
+  <div class="key-box">
+    <div class="key-label">Core Idea</div>
+    <strong>"The datacenter is the computer."</strong> Instead of thinking about individual machines, we treat the entire cluster of machines in a data center as one giant processing unit. Big data problems are distributed across all these machines.
+  </div>
+
+  <h3>Physical Building Blocks</h3>
+  <p>A data center is organised hierarchically:</p>
+  <div class="diagram">
+    <span class="node">[Server]</span> <span class="arrow">─→</span> <span class="node">[Rack Switch]</span> <span class="arrow">─→</span> <span class="node">[Datacenter Switch]</span><br>
+    <span class="label">  ~30-40 servers per rack       connects racks in the DC</span>
+  </div>
+  <p>Each <strong>server</strong> contains DRAM (fast memory) and a hard disk (slow storage). Servers in the same physical rack are connected via a <strong>rack switch</strong>. Racks across the data center communicate via a higher-level <strong>datacenter (cluster) switch</strong>.</p>
+
+  <div class="exam-tip">
+    You need to know the hierarchy: Server → Rack → Datacenter. The further data travels across this hierarchy, the slower and more expensive it becomes.
+  </div>
+</div>
+
+<!-- ─────────────────────────── SECTION 3 ─────────────────────────── -->
+<div class="section" id="latency-bw">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <h2>Latency vs. Bandwidth</h2>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <tr><th>Term</th><th>Definition</th><th>Analogy</th></tr>
+      <tr>
+        <td><strong>Bandwidth</strong></td>
+        <td>Maximum data transmitted per unit time (e.g. GB/s). Describes <em>capacity</em>.</td>
+        <td>The number of lanes on a highway</td>
+      </tr>
+      <tr>
+        <td><strong>Latency</strong></td>
+        <td>Time for 1 packet to travel from source to destination (one-way), or round trip. Describes <em>delay</em>.</td>
+        <td>The distance you must travel regardless of highway size</td>
+      </tr>
+      <tr>
+        <td><strong>Throughput</strong></td>
+        <td>Actual rate at which data was transmitted over a period (as opposed to the theoretical max bandwidth).</td>
+        <td>How much traffic actually flowed through the highway</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="key-box orange">
+    <div class="key-label">Key insight</div>
+    Adding more highway lanes (↑ bandwidth) does <strong>not</strong> reduce how long your journey takes (latency). These are independent! For <em>small</em> data, latency dominates. For <em>large</em> data, bandwidth dominates.
+  </div>
+
+  <h3>How Latency & Bandwidth Combine Along a Path</h3>
+  <div class="key-box green">
+    <div class="key-label">Rule 1 — Latency is additive</div>
+    Total latency = sum of latencies across all hops.<br>
+    <em>Example: 1ms hop + 100ms hop = ~101ms total.</em>
+  </div>
+  <div class="key-box yellow">
+    <div class="key-label">Rule 2 — Bandwidth is the minimum (bottleneck)</div>
+    The path's bandwidth = the bandwidth of its slowest segment.<br>
+    <em>Example: 1 Gbps link → 10 Mbps link = ~10 Mbps effective bandwidth.</em>
+  </div>
+
+  <p>These are <em>approximations</em> — real networks are affected by congestion, transport protocols, and queueing — but they are the right model for this course.</p>
+</div>
+
+<!-- ─────────────────────────── SECTION 4 ─────────────────────────── -->
+<div class="section" id="storage">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <h2>Storage Hierarchy & Data Access Costs</h2>
+  </div>
+
+  <p>Within a server, and across the datacenter, data can live in different storage media with very different characteristics:</p>
+
+  <div class="table-wrap">
+    <table>
+      <tr><th>Storage Type</th><th>Latency</th><th>Bandwidth</th><th>Capacity</th><th>Cost</th></tr>
+      <tr>
+        <td><strong>DRAM</strong> (local)</td>
+        <td class="good">~100 ns</td>
+        <td class="good">~20 GB/s</td>
+        <td class="bad">Low</td>
+        <td class="bad">Expensive</td>
+      </tr>
+      <tr>
+        <td><strong>Flash / SSD</strong></td>
+        <td>~100 µs</td>
+        <td>~1 GB/s</td>
+        <td>Medium</td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td><strong>Hard Disk</strong> (local)</td>
+        <td class="bad">~10 ms</td>
+        <td class="bad">~200 MB/s</td>
+        <td class="good">High</td>
+        <td class="good">Cheap</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="key-box">
+    <div class="key-label">Key Observations</div>
+    1. <strong>DRAM is fast but expensive and small.</strong> Disk is slow but cheap and large.<br>
+    2. <strong>As you go further in the hierarchy</strong> (Local → Rack → Datacenter), <em>capacity grows</em> but <em>latency increases and bandwidth drops</em>.<br>
+    3. <strong>Disk reads are ~100,000× slower</strong> in latency than DRAM reads (10ms vs. 100ns).
+  </div>
+
+  <h3>Sequential vs. Random Disk Access</h3>
+  <p>This is critical for system design. The hard disk example makes this stark:</p>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Access Pattern</th><th>Performance</th><th>Why?</th></tr>
+      <tr>
+        <td><strong>Random access</strong></td>
+        <td class="bad">~400 KB/s effective<br><em>(10ms latency per 4KB read)</em></td>
+        <td>Each access requires the disk head to physically seek to a new location — that 10ms dominates.</td>
+      </tr>
+      <tr>
+        <td><strong>Sequential access</strong></td>
+        <td class="good">~200 MB/s</td>
+        <td>The disk head reads a continuous stream — no seeking needed, so full bandwidth is achieved.</td>
+      </tr>
+    </table>
+  </div>
+  <p>→ Sequential is <strong>~500× faster</strong> than random on disk. This is why "process data sequentially" is one of the four big ideas.</p>
+</div>
+
+<!-- ─────────────────────────── SECTION 5 ─────────────────────────── -->
+<div class="section" id="paths">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <h2>Data Flow Paths — The 4 Cases</h2>
+  </div>
+
+  <p>These are the four standard data access scenarios you need to know. All calculations use the additive latency and bottleneck bandwidth rules.</p>
+
+  <!-- Case 1 -->
+  <h3>Case 1 — Local DRAM (same machine)</h3>
+  <div class="diagram">
+    <span class="node">My Program</span> <span class="arrow">─→</span> <span class="node">Local DRAM</span>
+  </div>
+  <div class="summary-bar">
+    <div class="summary-pill">Latency: <span>~100 ns</span></div>
+    <div class="summary-pill">Bandwidth: <span>~20 GB/s</span></div>
+  </div>
+  <p>Fastest possible access. Everything lives on the same machine — no network involved.</p>
+
+  <!-- Case 2 -->
+  <h3>Case 2 — Local Disk (same machine)</h3>
+  <div class="diagram">
+    <span class="node">My Program</span> <span class="arrow">─→</span> <span class="node">Local Disk</span>
+  </div>
+  <div class="summary-bar">
+    <div class="summary-pill">Latency: <span>~10 ms</span></div>
+    <div class="summary-pill">Bandwidth: <span>~200 MB/s</span></div>
+  </div>
+  <p>Still on the same machine, but now using the slow hard disk. Latency jumps by 100,000× vs. DRAM.</p>
+
+  <!-- Case 3 -->
+  <h3>Case 3 — Remote DRAM in same rack</h3>
+  <div class="diagram">
+    <span class="node">My Program</span> <span class="arrow">─→</span> <span class="node">Rack Switch</span> <span class="arrow">─→</span> <span class="node">Server B's DRAM</span><br>
+    <span class="label">  switch: 300µs, 100MB/s per port</span>
+  </div>
+  <div class="summary-bar">
+    <div class="summary-pill">Latency: <span>~600 µs</span> (300µs × 2 hops)</div>
+    <div class="summary-pill">Bandwidth: <span>~100 MB/s</span></div>
+  </div>
+  <p>The rack switch adds ~300µs each way (×2 for the two ports traversed). Bandwidth bottlenecks at the switch's 100 MB/s.</p>
+
+  <!-- Case 4 -->
+  <h3>Case 4 — Remote DRAM in different rack</h3>
+  <div class="diagram">
+    <span class="node">My Program</span> <span class="arrow">─→</span> <span class="node">Rack Switch</span> <span class="arrow">─→</span> <span class="node">DC Switch</span> <span class="arrow">─→</span> <span class="node">Rack Switch</span> <span class="arrow">─→</span> <span class="node">Server C's DRAM</span><br>
+    <span class="label">  DC switch: 500µs, 10MB/s per port</span>
+  </div>
+  <div class="summary-bar">
+    <div class="summary-pill">Latency: <span>~1600 µs</span> (500×2 + 300×2)</div>
+    <div class="summary-pill">Bandwidth: <span>~10 MB/s</span></div>
+  </div>
+  <p>Now we cross two rack switches and one datacenter switch. Latency adds up across all hops; bandwidth bottlenecks at the datacenter switch (10 MB/s — the slowest link).</p>
+
+  <div class="exam-tip">
+    For disk accesses (Cases 2, 3, 4 with disk): disk latency (~10ms) dominates over network latency. Disk in a different rack has roughly the same latency as local disk — the 10ms disk seek swamps the network delay.
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <tr><th>Scenario</th><th>Latency</th><th>Bandwidth</th></tr>
+      <tr><td>Local DRAM</td><td>100 ns</td><td>20 GB/s</td></tr>
+      <tr><td>Local Disk</td><td>10 ms</td><td>200 MB/s</td></tr>
+      <tr><td>Same-rack DRAM</td><td>~600 µs</td><td>~100 MB/s</td></tr>
+      <tr><td>Same-rack Disk</td><td>~10 ms (disk dominates)</td><td>~100 MB/s</td></tr>
+      <tr><td>Different-rack DRAM</td><td>~1600 µs</td><td>~10 MB/s</td></tr>
+      <tr><td>Different-rack Disk</td><td>~10 ms (disk dominates)</td><td>~10 MB/s</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ─────────────────────────── SECTION 6 ─────────────────────────── -->
+<div class="section" id="bigideas">
+  <div class="section-header">
+    <span class="section-num">06</span>
+    <h2>The Four Big Ideas</h2>
+  </div>
+
+  <p>These are the core design principles that all major big data systems (Hadoop, Spark, etc.) are built on. Know them well.</p>
+
+  <div class="ideas-grid">
+    <div class="idea-card">
+      <div class="idea-num">01</div>
+      <div class="idea-title">Scale "Out", Not "Up"</div>
+      <p>Instead of buying one very powerful (and expensive) server, add many cheap commodity machines. Horizontal scaling (out) is more cost-effective and fault-tolerant than vertical scaling (up).</p>
+    </div>
+    <div class="idea-card">
+      <div class="idea-num">02</div>
+      <div class="idea-title">Seamless Scalability</div>
+      <p>System performance should scale linearly with the number of machines. If 1 machine takes 100 hours, 10 machines should take ~10 hours. This lets you "buy" more performance by adding nodes.</p>
+    </div>
+    <div class="idea-card">
+      <div class="idea-num">03</div>
+      <div class="idea-title">Move Processing to the Data</div>
+      <p>Network bandwidth is the bottleneck in a cluster. Rather than moving large datasets across the network to your program, move your <em>program</em> (code) to the machine where the data already lives. Code is tiny; data is huge.</p>
+    </div>
+    <div class="idea-card">
+      <div class="idea-num">04</div>
+      <div class="idea-title">Process Data Sequentially, Avoid Random Access</div>
+      <p>Disk seeks are very expensive (~10ms each). Designing systems to read data in large sequential chunks achieves ~200 MB/s. Random access degrades this to ~400 KB/s — a 500× penalty.</p>
+    </div>
+  </div>
+
+  <h3>Seamless Scalability — Aggregated Bandwidth</h3>
+  <p>One concrete reason scale-out works so well is that resources aggregate linearly:</p>
+  <div class="table-wrap">
+    <table>
+      <tr><th># Machines</th><th>Aggregated Disk BW</th><th>Aggregated DRAM BW</th></tr>
+      <tr><td>1</td><td>200 MB/s</td><td>20 GB/s</td></tr>
+      <tr><td>10</td><td>2 GB/s</td><td>200 GB/s</td></tr>
+      <tr><td>100</td><td>20 GB/s</td><td>2 TB/s</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ─────────────────────────── SECTION 7 ─────────────────────────── -->
+<div class="section" id="abstractions">
+  <div class="section-header">
+    <span class="section-num">07</span>
+    <h2>Abstractions for Big Data Systems</h2>
+  </div>
+
+  <h3>Why We Need Abstractions: Google's Motivation</h3>
+  <p>Consider indexing the entire web:</p>
+  <div class="key-box">
+    <div class="key-label">Back-of-envelope calculation</div>
+    20+ billion web pages × 20 KB = <strong>400+ TB</strong> of data.<br>
+    1 machine reads at ~30 MB/s → would take <strong>~4 months</strong> to scan the web once.<br>
+    Solution: use thousands of machines in parallel — but that creates new problems.
+  </div>
+
+  <h3>Challenges of Parallel Processing</h3>
+  <p>When you distribute work across many machines, you face:</p>
+  <div class="table-wrap">
+    <table>
+      <tr><th>Challenge</th><th>Description</th></tr>
+      <tr><td><strong>Machine Failures</strong></td><td>With 3,650 servers, you lose ~1 machine per day on average. Google reportedly had ~2.5M machines → ~700 fail daily! Systems must handle failures gracefully.</td></tr>
+      <tr><td><strong>Synchronization</strong></td><td>Workers run in unpredictable order. Shared state requires mechanisms like semaphores, barriers, and condition variables — and bugs like deadlocks and race conditions are common.</td></tr>
+      <tr><td><strong>Programming Difficulty</strong></td><td>Concurrent distributed code is extremely hard to write and debug. Without a framework, every team writes custom low-level solutions — a huge burden.</td></tr>
+    </table>
+  </div>
+
+  <h3>Barrier (Synchronisation Primitive)</h3>
+  <div class="key-box">
+    <div class="key-label">Definition</div>
+    A <strong>barrier</strong> is a synchronisation point: all processes/workers must <em>stop and wait</em> at the barrier until every process has reached it. Only then do they all proceed. Used to ensure workers finish one phase before starting the next.
+  </div>
+
+  <h3>The Solution: The Right Abstraction</h3>
+  <p>The key insight is to separate <em>what</em> to compute from <em>how</em> it's executed:</p>
+
+  <div class="diagram">
+    <strong>Programmer writes:</strong>   map() + reduce() functions<br><br>
+    <strong>Execution framework</strong>  (Hadoop / Spark) handles:<br>
+    &nbsp;&nbsp;<span class="arrow">→</span> Task assignment to workers<br>
+    &nbsp;&nbsp;<span class="arrow">→</span> Data replication &amp; fault tolerance<br>
+    &nbsp;&nbsp;<span class="arrow">→</span> Synchronization &amp; barriers<br>
+    &nbsp;&nbsp;<span class="arrow">→</span> Aggregating partial results
+  </div>
+
+  <p>Think of this as the <strong>"instruction set" (API) of the datacenter computer</strong>. Just as you don't manually manage transistors when writing Python, you shouldn't manually manage threads and sockets when writing a big data job.</p>
+
+  <h3>Divide and Conquer Pattern</h3>
+  <div class="diagram">
+    <span class="node">"Work" (large dataset)</span><br>
+    <span class="arrow">↓ Partition</span><br>
+    <span class="node">[w1]</span> &nbsp; <span class="node">[w2]</span> &nbsp; <span class="node">[w3]</span><br>
+    <span class="label">worker  worker  worker</span><br>
+    <span class="arrow">↓ Combine</span><br>
+    <span class="node">"Result"</span>
+  </div>
+  <p>The framework handles partitioning the work, assigning it to workers, collecting intermediate results, and merging them into the final answer.</p>
+</div>
+
+<!-- ─────────────────────────── SECTION 8 ─────────────────────────── -->
+<div class="section" id="quiz">
+  <div class="section-header">
+    <span class="section-num">08</span>
+    <h2>Quiz Questions & Worked Answers</h2>
+  </div>
+
+  <div class="quiz">
+    <div class="quiz-label">Quiz Q1</div>
+    <p>Server A is downloading a file from the disk of Server B in the same rack. What is the data path?</p>
+    <p>(A) Server B's DRAM → Rack Switch → Server A's DRAM<br>
+    (B) Server B's disk → Server B's DRAM → Rack Switch → Server A's DRAM<br>
+    (C) Server B's disk → Server B's DRAM → Rack Switch → Datacenter Switch → Rack Switch → Server A's DRAM</p>
+    <div class="answer"><strong>Answer: (B)</strong> — Data must first be loaded from B's disk into B's DRAM, then sent over the rack switch to A. Since A and B are in the same rack, there's no need for the datacenter switch (which is only needed for cross-rack communication).</div>
+  </div>
+
+  <div class="quiz">
+    <div class="quiz-label">Quiz Q2</div>
+    <p>Same scenario. If the file is very <strong>small</strong>, what determines how long this takes?</p>
+    <p>(A) Disk latency &nbsp; (B) Disk bandwidth &nbsp; (C) Network switch bandwidth &nbsp; (D) Network switch latency</p>
+    <div class="answer"><strong>Answer: (A) Disk latency.</strong> For small files, the fixed seek time (~10ms) dominates. Bandwidth is irrelevant because there's very little actual data to transfer — the bottleneck is just the initial delay of getting the disk head to the right position.</div>
+  </div>
+
+  <div class="quiz">
+    <div class="quiz-label">Quiz Q3</div>
+    <p>Same scenario. If the file is very <strong>large</strong>, what determines how long this takes?</p>
+    <p>(A) Disk latency &nbsp; (B) Disk bandwidth &nbsp; (C) Network switch bandwidth &nbsp; (D) Network switch latency</p>
+    <div class="answer"><strong>Answer: (C) Network switch bandwidth.</strong> For large files, latency is negligible compared to transfer time. The bottleneck is the rate of data transfer. Disk bandwidth is ~200 MB/s, but the rack switch is only ~100 MB/s — so the switch is the bottleneck (minimum of the two).</div>
+  </div>
+
+  <div class="quiz">
+    <div class="quiz-label">Quiz Q4</div>
+    <p>Program P on Server A in Rack 1. L1 = latency to local disk, L2 = latency to disk of another server in Rack 1, L3 = latency to disk of a server in Rack 16. Which are true?</p>
+    <p>S1. L3 can be 10× larger than L2. &nbsp; S2. L2 can be 10× larger than L1. &nbsp; S3. L3 ≈ L2. &nbsp; S4. L2 ≈ L1.</p>
+    <div class="answer"><strong>Answer: S3 and S4.</strong> Disk seek time (~10ms) is so large that it completely dominates any network latency (which is in µs). So L1 ≈ L2 ≈ L3 ≈ 10ms. The hard disk is the bottleneck regardless of where in the datacenter that disk lives.</div>
+  </div>
+</div>
+
+<!-- ─────────────────────────── FOOTER ─────────────────────────── -->
+<div class="key-box green" style="margin-top:40px;">
+  <div class="key-label">Takeaways</div>
+  1. The datacenter is the computer — think at the cluster level.<br>
+  2. Four big ideas: scale out, seamless scalability, move code to data, sequential access.<br>
+  3. Hardware reality constrains design: disk is slow, network bandwidth is the bottleneck, DRAM is fast but limited.<br>
+  4. The right abstraction (map/reduce) hides complexity from the programmer and enables reliable distributed computing.
+</div>
+
+</body>
+</html>

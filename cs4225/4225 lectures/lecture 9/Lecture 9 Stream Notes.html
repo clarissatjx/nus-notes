@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 9 — Stream Processing | CS4225/CS5425</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal:        #0F6E56;
+      --teal-light:  #E1F5EE;
+      --teal-mid:    #1D9E75;
+      --purple:      #3C3489;
+      --purple-light:#EEEDFE;
+      --amber:       #854F0B;
+      --amber-light: #FAEEDA;
+      --blue:        #0C447C;
+      --blue-light:  #E6F1FB;
+      --coral:       #712B13;
+      --coral-light: #FAECE7;
+      --red-light:   #FCEBEB;
+      --red:         #791F1F;
+      --green-light: #EAF3DE;
+      --green:       #27500A;
+      --gray:        #444441;
+      --gray-light:  #F1EFE8;
+      --border:      #D3D1C7;
+      --text:        #1a1a1a;
+      --text-muted:  #5F5E5A;
+      --font-body:   'DM Sans', sans-serif;
+      --font-mono:   'JetBrains Mono', monospace;
+    }
+
+    html, body {
+      background: #ffffff;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 11pt;
+      line-height: 1.65;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 18mm 16mm 18mm 16mm;
+    }
+
+    .lecture-header { border-bottom: 2.5px solid var(--teal-mid); padding-bottom: 10px; margin-bottom: 22px; }
+    .lecture-title  { font-size: 20pt; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+    .lecture-sub    { font-size: 9pt; color: var(--text-muted); margin-top: 3px; letter-spacing: 0.3px; }
+
+    .section       { margin-bottom: 20px; }
+    .section-title { font-size: 12pt; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; margin-bottom: 9px; padding-bottom: 4px; border-bottom: 0.75px solid var(--border); }
+
+    .badge { font-size: 8pt; font-weight: 600; padding: 2px 9px; border-radius: 20px; letter-spacing: 0.2px; }
+    .bt { background: var(--teal-light);   color: var(--teal); }
+    .bp { background: var(--purple-light); color: var(--purple); }
+    .ba { background: var(--amber-light);  color: var(--amber); }
+    .bb { background: var(--blue-light);   color: var(--blue); }
+    .bc { background: var(--coral-light);  color: var(--coral); }
+
+    p    { font-size: 10.5pt; color: var(--text); line-height: 1.65; margin-bottom: 7px; }
+    code { font-family: var(--font-mono); font-size: 9pt; background: var(--gray-light); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr;         gap: 8px; margin-bottom: 9px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr;     gap: 8px; margin-bottom: 9px; }
+    .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+
+    .card       { border: 0.75px solid var(--border); border-radius: 7px; padding: 9px 11px; background: #fff; }
+    .card-title { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .card-body  { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; }
+
+    .phase-row   { display: flex; align-items: stretch; gap: 0; margin-bottom: 10px; }
+    .phase-box   { flex: 1; border-radius: 7px; padding: 10px; text-align: center; }
+    .phase-arrow { display: flex; align-items: center; padding: 0 5px; color: var(--text-muted); font-size: 14pt; }
+    .phase-title { font-size: 10.5pt; font-weight: 600; margin-bottom: 3px; }
+    .phase-desc  { font-size: 8.5pt; line-height: 1.4; }
+    .ph-teal   { background: var(--teal-light); }   .ph-teal .phase-title   { color: var(--teal); }   .ph-teal .phase-desc   { color: #0F6E56; }
+    .ph-purple { background: var(--purple-light); } .ph-purple .phase-title { color: var(--purple); } .ph-purple .phase-desc { color: #534AB7; }
+    .ph-amber  { background: var(--amber-light); }  .ph-amber .phase-title  { color: var(--amber); }  .ph-amber .phase-desc  { color: #854F0B; }
+    .ph-blue   { background: var(--blue-light); }   .ph-blue .phase-title   { color: var(--blue); }   .ph-blue .phase-desc   { color: #0C447C; }
+    .ph-coral  { background: var(--coral-light); }  .ph-coral .phase-title  { color: var(--coral); }  .ph-coral .phase-desc  { color: #712B13; }
+
+    .hl { border-left: 3px solid var(--teal-mid); background: var(--teal-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: #085041; line-height: 1.55; }
+    .wl { border-left: 3px solid #EF9F27;         background: var(--amber-light); border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--amber); line-height: 1.55; }
+    .il { border-left: 3px solid #378ADD;         background: var(--blue-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--blue); line-height: 1.55; }
+    .rl { border-left: 3px solid #C74848;         background: var(--red-light);   border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--red); line-height: 1.55; }
+
+    .code-block { background: var(--gray-light); border: 0.75px solid var(--border); border-radius: 6px; padding: 9px 12px; font-family: var(--font-mono); font-size: 8.5pt; line-height: 1.6; white-space: pre; margin-bottom: 9px; color: var(--text); }
+
+    /* Syntax token classes */
+    .kw { color: #3C3489; font-weight: 600; }
+    .st { color: #0F6E56; }
+    .cm { color: #8A8880; font-style: italic; }
+    .nm { color: #854F0B; }
+    .fn { color: #0C447C; }
+
+    .step-item { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 7px; font-size: 9.5pt; color: var(--text); line-height: 1.55; }
+    .step-num  { width: 20px; height: 20px; border-radius: 50%; background: #9FE1CB; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+
+    .qa-block { margin-bottom: 9px; }
+    .qa-q { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .qa-a { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; padding-left: 10px; border-left: 2px solid var(--border); }
+
+    .tag { display: inline-block; font-size: 8pt; font-weight: 600; padding: 1px 7px; border-radius: 3px; margin-right: 3px; }
+    .tg { background: var(--green-light); color: var(--green); }
+    .tr { background: var(--red-light);   color: var(--red); }
+    .ta { background: var(--amber-light); color: var(--amber); }
+    .tb { background: var(--blue-light);  color: var(--blue); }
+
+    .cmp    { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 9px; }
+    .cmp th { background: var(--gray-light); color: var(--text); font-weight: 600; padding: 6px 10px; text-align: left; border: 0.75px solid var(--border); }
+    .cmp td { padding: 5px 10px; border: 0.75px solid var(--border); color: var(--text-muted); vertical-align: top; line-height: 1.5; }
+    .cmp td strong { color: var(--text); }
+
+    .divider { border-top: 0.75px solid var(--border); margin: 14px 0; }
+
+    @media print {
+      * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      html, body { background: #fff; }
+      .page { width: 100%; padding: 15mm 14mm; }
+      .section { page-break-inside: avoid; }
+      .card    { page-break-inside: avoid; }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="lecture-header">
+    <div class="lecture-title">Lecture 9 &mdash; Stream Processing</div>
+    <div class="lecture-sub">CS4225 / CS5425 &middot; Big Data Systems for Data Science &middot; National University of Singapore</div>
+  </div>
+
+  <!-- Section 1: What is Stream Processing? -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">1</span> What is Stream Processing?</div>
+    <div class="hl"><strong>Core insight:</strong> In many real-world settings, data is not sitting still — it arrives continuously and endlessly over time. Stream processing is the discipline of computing results <em>as data arrives</em>, rather than waiting to collect the whole dataset first.</div>
+    <p>Traditional <strong>batch processing</strong> (MapReduce, SQL queries on files) operates on a fixed, complete dataset. You load all the data, run the job, get the answer. This works well for historical analysis, but it falls apart when you need answers within seconds or milliseconds of an event happening.</p>
+    <p><strong>Streaming (online) processing</strong> treats data as an unbounded, ever-arriving sequence of records called <strong>tuples</strong>. Because the stream never ends, you cannot store all of it in memory — instead, you process each element as it arrives and maintain only the <em>state</em> you need to answer your queries.</p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Sensor Data</div>
+        <div class="card-body">Industrial sensors, weather stations, medical monitors — all emit readings continuously. Anomaly detection must be instant.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Online User Activity</div>
+        <div class="card-body">Clicks, page views, purchases — e-commerce and social platforms need real-time personalisation and fraud checks.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Financial Transactions</div>
+        <div class="card-body">Credit card fraud detection and stock trade analysis must process millions of transactions per second with sub-second latency.</div>
+      </div>
+    </div>
+    <div class="il"><strong>Stateful stream processing</strong> goes beyond simple record-at-a-time transformations. It stores and accesses intermediate data (state) — in program variables, local files, or external databases — to compute aggregates, joins, and pattern detections across many events. Exactly-once processing guarantees ensure results are always correct.</div>
+  </div>
+
+  <!-- Section 2: Why Does Stream Processing Matter? -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">2</span> Why Does It Matter? &mdash; Batch vs. Stream</div>
+    <p>Batch systems introduce <strong>pipeline latency</strong>: data must first be written to storage (e.g. HDFS), then an ETL job runs, then the result is served. A traditional data warehouse pipeline might take minutes to hours. A streaming analytics application replaces that entire chain with a single stream processor that ingests events, maintains state, and updates results continuously — reducing the time from event to insight from hours to <strong>milliseconds</strong>.</p>
+    <div class="phase-row">
+      <div class="phase-box ph-coral">
+        <div class="phase-title">Batch (Traditional)</div>
+        <div class="phase-desc">Collect all data &rarr; store &rarr; ETL &rarr; warehouse &rarr; query. Latency: minutes to hours.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Streaming</div>
+        <div class="phase-desc">Event arrives &rarr; processed immediately &rarr; result updated. Latency: milliseconds to seconds.</div>
+      </div>
+    </div>
+    <div class="wl"><strong>Exam trap:</strong> "Stream processing replaces batch" is wrong. They are complementary. Streaming handles low-latency, real-time needs; batch handles large-scale historical analysis. Many architectures use both (Lambda / Kappa architectures).</div>
+  </div>
+
+  <!-- Section 3: Spark Structured Streaming -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">3</span> Spark Structured Streaming &mdash; Micro-batch Model</div>
+    <p>Spark's approach to streaming is called <strong>Structured Streaming</strong>. Rather than processing each event individually, it uses a <strong>micro-batch</strong> model: incoming stream data is collected into small time-bounded chunks (micro-batches), and each micro-batch is processed as a regular Spark batch job.</p>
+    <div class="hl"><strong>Key philosophy:</strong> Writing a streaming pipeline should feel exactly like writing a batch pipeline. Spark achieves this by modelling the data stream as an <strong>unbounded table</strong> — new rows keep arriving and being appended to the bottom of the table. Queries written against this table run continuously.</div>
+
+    <!-- Micro-batch diagram -->
+    <div style="border: 0.75px solid var(--border); border-radius: 8px; padding: 13px 14px 11px 14px; margin-bottom: 9px; background: #fafafa;">
+
+      <!-- Row 1: Input stream label + flow bar -->
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 9px;">
+        <div style="font-size: 7.5pt; font-weight: 600; color: var(--text-muted); white-space: nowrap; letter-spacing: 0.3px;">INPUT STREAM</div>
+        <div style="flex: 1; position: relative; height: 24px; background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: 4px; display: flex; align-items: center; padding: 0 8px; gap: 5px; overflow: hidden;">
+          <!-- dots representing events -->
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;"></div>
+          <div style="width:1.5px;height:18px;background:var(--teal);flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;"></div>
+          <div style="width:1.5px;height:18px;background:var(--teal);flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;"></div>
+          <div style="width:1.5px;height:18px;background:var(--teal);flex-shrink:0;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;opacity:0.5;"></div>
+          <div style="width:7px;height:7px;border-radius:50%;background:var(--teal-mid);flex-shrink:0;opacity:0.3;"></div>
+          <div style="font-size: 9pt; color: var(--teal); font-weight: 600; margin-left: 2px;">&infin;</div>
+        </div>
+      </div>
+
+      <!-- Row 2: Trigger labels above each batch -->
+      <div style="display: flex; gap: 6px; margin-bottom: 3px; padding-left: 80px;">
+        <div style="flex:1; text-align:center; font-size:7.5pt; color:var(--text-muted);">trigger (t=5s)</div>
+        <div style="flex:1; text-align:center; font-size:7.5pt; color:var(--text-muted);">trigger (t=10s)</div>
+        <div style="flex:1; text-align:center; font-size:7.5pt; color:var(--text-muted);">trigger (t=15s)</div>
+        <div style="flex:0.4;"></div>
+      </div>
+
+      <!-- Row 3: Micro-batch boxes + down arrows -->
+      <div style="display: flex; align-items: flex-start; gap: 6px; margin-bottom: 7px;">
+        <div style="font-size: 7.5pt; font-weight: 600; color: var(--text-muted); white-space: nowrap; letter-spacing: 0.3px; padding-top: 10px; width: 74px;">MICRO-BATCHES</div>
+        <div style="flex:1; background:var(--teal-light); border:1.5px solid var(--teal-mid); border-radius:6px; padding:7px 6px; text-align:center;">
+          <div style="font-size:8.5pt;font-weight:600;color:var(--teal);">Batch 1</div>
+          <div style="font-size:7.5pt;color:var(--teal);">2 events</div>
+        </div>
+        <div style="flex:1; background:var(--teal-light); border:1.5px solid var(--teal-mid); border-radius:6px; padding:7px 6px; text-align:center;">
+          <div style="font-size:8.5pt;font-weight:600;color:var(--teal);">Batch 2</div>
+          <div style="font-size:7.5pt;color:var(--teal);">2 events</div>
+        </div>
+        <div style="flex:1; background:var(--teal-light); border:1.5px solid var(--teal-mid); border-radius:6px; padding:7px 6px; text-align:center;">
+          <div style="font-size:8.5pt;font-weight:600;color:var(--teal);">Batch 3</div>
+          <div style="font-size:7.5pt;color:var(--teal);">3 events</div>
+        </div>
+        <div style="flex:0.4; display:flex; align-items:center; justify-content:center; font-size:10pt; color:var(--text-muted); padding-top:6px;">&hellip;</div>
+      </div>
+
+      <!-- Down arrows -->
+      <div style="display: flex; gap: 6px; margin-bottom: 4px; padding-left: 80px;">
+        <div style="flex:1;text-align:center;font-size:13pt;color:var(--purple);line-height:1;">&#8595;</div>
+        <div style="flex:1;text-align:center;font-size:13pt;color:var(--purple);line-height:1;">&#8595;</div>
+        <div style="flex:1;text-align:center;font-size:13pt;color:var(--purple);line-height:1;">&#8595;</div>
+        <div style="flex:0.4;"></div>
+      </div>
+
+      <!-- Row 4: Spark Cluster -->
+      <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+        <div style="font-size: 7.5pt; font-weight: 600; color: var(--text-muted); white-space: nowrap; letter-spacing: 0.3px; width: 74px;">SPARK CLUSTER</div>
+        <div style="flex:1; background:var(--purple-light); border:1.5px solid var(--purple); border-radius:6px; padding:8px 10px; text-align:center;">
+          <div style="font-size:8.5pt;font-weight:600;color:var(--purple);">Distributed Batch Execution</div>
+          <div style="font-size:7.5pt;color:var(--purple);margin-top:2px;">small deterministic tasks &middot; exactly-once guarantees &middot; fast failure recovery</div>
+        </div>
+      </div>
+
+      <!-- Down arrows -->
+      <div style="display: flex; gap: 6px; margin-bottom: 4px; padding-left: 80px;">
+        <div style="flex:1;text-align:center;font-size:13pt;color:var(--blue);line-height:1;">&#8595;</div>
+        <div style="flex:1;text-align:center;font-size:13pt;color:var(--blue);line-height:1;">&#8595;</div>
+        <div style="flex:1;text-align:center;font-size:13pt;color:var(--blue);line-height:1;">&#8595;</div>
+        <div style="flex:0.4;"></div>
+      </div>
+
+      <!-- Row 5: Result table updates -->
+      <div style="display: flex; align-items: flex-start; gap: 6px;">
+        <div style="font-size: 7.5pt; font-weight: 600; color: var(--text-muted); white-space: nowrap; letter-spacing: 0.3px; padding-top: 9px; width: 74px;">RESULT TABLE</div>
+        <div style="flex:1; background:var(--blue-light); border:1px solid var(--blue); border-radius:6px; padding:7px 6px; text-align:center;">
+          <div style="font-size:7.5pt;font-weight:600;color:var(--blue);">Output 1</div>
+          <div style="font-size:7pt;color:var(--blue);">rows appended</div>
+        </div>
+        <div style="flex:1; background:var(--blue-light); border:1px solid var(--blue); border-radius:6px; padding:7px 6px; text-align:center;">
+          <div style="font-size:7.5pt;font-weight:600;color:var(--blue);">Output 2</div>
+          <div style="font-size:7pt;color:var(--blue);">rows appended</div>
+        </div>
+        <div style="flex:1; background:var(--blue-light); border:1px solid var(--blue); border-radius:6px; padding:7px 6px; text-align:center;">
+          <div style="font-size:7.5pt;font-weight:600;color:var(--blue);">Output 3</div>
+          <div style="font-size:7pt;color:var(--blue);">rows appended</div>
+        </div>
+        <div style="flex:0.4;"></div>
+      </div>
+
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title"><span class="tag tg">Advantage</span> Fault Tolerance</div>
+        <div class="card-body">Because each micro-batch is a deterministic Spark job, failures can be recovered by simply re-running the failed micro-batch. This gives exactly-once end-to-end guarantees.</div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="tag tr">Disadvantage</span> Latency</div>
+        <div class="card-body">Micro-batching introduces latency of a few seconds. For most applications this is acceptable — many pipelines already incur delays elsewhere (network, database, etc.).</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <p><strong>Example &mdash; how incremental execution works in practice</strong></p>
+    <p>Suppose you write this query on an unbounded stream of click events. To you it looks exactly like a batch query:</p>
+    <div class="code-block"><span class="kw">SELECT</span> user, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> clicks
+<span class="kw">FROM</span> click_events
+<span class="kw">GROUP BY</span> user</div>
+
+    <p>Spark's SQL Planner converts this into an <strong>incremental execution plan</strong>. It identifies what state to keep (the per-user count) and how to update it with only the new events that arrived since the last trigger — it never recomputes from scratch.</p>
+
+    <!-- Slide 17 diagram: Incremental execution of streaming queries -->
+    <div style="border: 0.75px solid var(--border); border-radius: 8px; padding: 13px; margin-bottom: 9px; background: #fafafa; font-size: 8.5pt;">
+
+      <!-- Column headers -->
+      <div style="display:flex; align-items:flex-end; gap:0; margin-bottom:6px; padding: 0 2px;">
+        <div style="flex:5; text-align:center; font-size:7.5pt; font-weight:600; color:var(--teal); letter-spacing:0.3px;">INPUT TABLE (unbounded)</div>
+        <div style="flex:2; text-align:center; font-size:7.5pt; font-weight:600; color:var(--purple); letter-spacing:0.3px;">SPARK SQL PLANNER</div>
+        <div style="flex:5; text-align:center; font-size:7.5pt; font-weight:600; color:var(--blue); letter-spacing:0.3px;">RESULT TABLE + OUTPUT</div>
+      </div>
+
+      <!-- Row: t = 1 -->
+      <div style="display:flex; align-items:stretch; gap:0; margin-bottom:5px;">
+        <div style="flex:5; background:var(--teal-light); border:1px solid var(--teal-mid); border-radius:6px 0 0 6px; padding:8px 10px;">
+          <div style="font-size:7.5pt; font-weight:600; color:var(--teal); margin-bottom:4px;">trigger t = 1 &mdash; new micro-batch</div>
+          <div style="display:flex; gap:5px; flex-wrap:wrap;">
+            <div style="background:#fff; border:0.75px solid var(--teal-mid); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--teal);">alice, click</div>
+            <div style="background:#fff; border:0.75px solid var(--teal-mid); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--teal);">alice, click</div>
+            <div style="background:#fff; border:0.75px solid var(--teal-mid); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--teal);">bob, click</div>
+          </div>
+        </div>
+        <div style="flex:2; display:flex; align-items:center; justify-content:center; background:var(--purple-light); border-top:1px solid var(--purple); border-bottom:1px solid var(--purple); padding:6px 4px; text-align:center;">
+          <div>
+            <div style="font-size:7.5pt; font-weight:600; color:var(--purple);">incremental</div>
+            <div style="font-size:11pt; color:var(--purple);">&rarr;</div>
+            <div style="font-size:7.5pt; color:var(--purple);">query plan</div>
+          </div>
+        </div>
+        <div style="flex:5; border:1px solid var(--blue); border-radius:0 6px 6px 0; overflow:hidden;">
+          <div style="background:var(--blue-light); padding:6px 10px;">
+            <div style="font-size:7.5pt; font-weight:600; color:var(--blue); margin-bottom:3px;">state updated</div>
+            <div style="display:flex; gap:5px;">
+              <div style="background:#fff; border:0.75px solid var(--blue); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--blue);">alice = 2</div>
+              <div style="background:#fff; border:0.75px solid var(--blue); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--blue);">bob = 1</div>
+            </div>
+          </div>
+          <div style="background:#E6F1FB; border-top:0.75px dashed var(--blue); padding:5px 10px;">
+            <span style="font-size:7.5pt; color:var(--blue);">&#8595; output: <strong>alice=2, bob=1</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row: t = 2 -->
+      <div style="display:flex; align-items:stretch; gap:0; margin-bottom:5px;">
+        <div style="flex:5; background:var(--teal-light); border:1px solid var(--teal-mid); border-radius:6px 0 0 6px; padding:8px 10px;">
+          <div style="font-size:7.5pt; font-weight:600; color:var(--teal); margin-bottom:4px;">trigger t = 2 &mdash; new micro-batch</div>
+          <div style="display:flex; gap:5px; flex-wrap:wrap;">
+            <div style="background:#fff; border:0.75px solid var(--teal-mid); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--teal);">alice, click</div>
+            <div style="background:#fff; border:0.75px solid var(--teal-mid); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--teal);">carol, click</div>
+            <div style="background:#fff; border:0.75px solid var(--teal-mid); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--teal);">carol, click</div>
+          </div>
+        </div>
+        <div style="flex:2; display:flex; align-items:center; justify-content:center; background:var(--purple-light); border-top:1px solid var(--purple); border-bottom:1px solid var(--purple); padding:6px 4px; text-align:center;">
+          <div>
+            <div style="font-size:7.5pt; font-weight:600; color:var(--purple);">incremental</div>
+            <div style="font-size:11pt; color:var(--purple);">&rarr;</div>
+            <div style="font-size:7.5pt; color:var(--purple);">query plan</div>
+          </div>
+        </div>
+        <div style="flex:5; border:1px solid var(--blue); border-radius:0 6px 6px 0; overflow:hidden;">
+          <div style="background:var(--blue-light); padding:6px 10px;">
+            <div style="font-size:7.5pt; font-weight:600; color:var(--blue); margin-bottom:3px;">state updated</div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <div style="background:#fff; border:0.75px solid var(--blue); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--blue);">alice = 3</div>
+              <div style="background:#fff; border:0.75px solid var(--blue); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--blue);">bob = 1</div>
+              <div style="background:#fff; border:0.75px solid var(--blue); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--blue);">carol = 2</div>
+            </div>
+          </div>
+          <div style="background:#E6F1FB; border-top:0.75px dashed var(--blue); padding:5px 10px;">
+            <span style="font-size:7.5pt; color:var(--blue);">&#8595; output: <strong>alice=3, carol=2</strong> <span style="font-weight:400;">(changed only)</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row: t = 3 -->
+      <div style="display:flex; align-items:stretch; gap:0; margin-bottom:8px;">
+        <div style="flex:5; background:var(--teal-light); border:1px solid var(--teal-mid); border-radius:6px 0 0 6px; padding:8px 10px;">
+          <div style="font-size:7.5pt; font-weight:600; color:var(--teal); margin-bottom:4px;">trigger t = 3 &mdash; new micro-batch</div>
+          <div style="display:flex; gap:5px;">
+            <div style="background:#fff; border:0.75px solid var(--teal-mid); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--teal);">bob, click</div>
+            <div style="background:#fff; border:0.75px solid var(--teal-mid); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--teal);">bob, click</div>
+          </div>
+        </div>
+        <div style="flex:2; display:flex; align-items:center; justify-content:center; background:var(--purple-light); border-top:1px solid var(--purple); border-bottom:1px solid var(--purple); padding:6px 4px; text-align:center;">
+          <div>
+            <div style="font-size:7.5pt; font-weight:600; color:var(--purple);">incremental</div>
+            <div style="font-size:11pt; color:var(--purple);">&rarr;</div>
+            <div style="font-size:7.5pt; color:var(--purple);">query plan</div>
+          </div>
+        </div>
+        <div style="flex:5; border:1px solid var(--blue); border-radius:0 6px 6px 0; overflow:hidden;">
+          <div style="background:var(--blue-light); padding:6px 10px;">
+            <div style="font-size:7.5pt; font-weight:600; color:var(--blue); margin-bottom:3px;">state updated</div>
+            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+              <div style="background:#fff; border:0.75px solid var(--blue); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--blue);">alice = 3</div>
+              <div style="background:#fff; border:0.75px solid var(--blue); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--blue);">bob = 3</div>
+              <div style="background:#fff; border:0.75px solid var(--blue); border-radius:3px; padding:2px 7px; font-size:7.5pt; color:var(--blue);">carol = 2</div>
+            </div>
+          </div>
+          <div style="background:#E6F1FB; border-top:0.75px dashed var(--blue); padding:5px 10px;">
+            <span style="font-size:7.5pt; color:var(--blue);">&#8595; output: <strong>bob=3</strong> <span style="font-weight:400;">(changed only)</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer: output mode note -->
+      <div style="background:var(--amber-light); border:0.75px solid var(--amber); border-radius:5px; padding:6px 10px; font-size:7.5pt; color:var(--amber);">
+        <strong>Update mode shown above</strong> &mdash; only rows that changed since the last trigger are emitted. In <strong>Complete mode</strong>, the full result table (all three users) would be written every trigger. In <strong>Append mode</strong>, only rows that will never change again are emitted (not usable for aggregations that update).
+      </div>
+
+    </div>
+
+    <table class="cmp">
+      <tr>
+        <th>Trigger</th>
+        <th>New events arriving</th>
+        <th>State after update</th>
+        <th>Output emitted (update mode)</th>
+      </tr>
+      <tr>
+        <td><strong>t = 1</strong></td>
+        <td>alice×2, bob×1</td>
+        <td>alice=2, bob=1</td>
+        <td>alice=2, bob=1</td>
+      </tr>
+      <tr>
+        <td><strong>t = 2</strong></td>
+        <td>alice×1, carol×3</td>
+        <td>alice=3, bob=1, carol=3</td>
+        <td>only new/changed rows since t=1</td>
+      </tr>
+      <tr>
+        <td><strong>t = 3</strong></td>
+        <td>bob×2</td>
+        <td>alice=3, bob=3, carol=3</td>
+        <td>only new/changed rows since t=2</td>
+      </tr>
+    </table>
+
+    <div class="hl"><strong>Key formula:</strong> Result(t+1) = Result(t) + changes from new micro-batch data &mdash; Spark never reprocesses old events already captured in state.</div>
+    <div class="il"><strong>One sentence to remember:</strong> Spark Structured Streaming = batch query + incremental state updates over time. You write once as if it were batch; Spark handles the streaming mechanics invisibly.</div>
+  </div>
+
+  <!-- Section 4: Output Modes -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">4</span> Output Modes</div>
+    <p>When Spark writes results of a streaming query to an external sink (database, file, console), it must know <em>how much</em> to write after each trigger. There are three modes:</p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Append Mode</div>
+        <div class="card-body">Only <strong>newly added rows</strong> since the last trigger are written. Use when old rows will never change — e.g. raw event logs. Cannot be used with aggregations that may update old results.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Update Mode</div>
+        <div class="card-body">Only <strong>rows that changed</strong> since the last trigger are written. Suitable for aggregations with a sink that supports in-place updates (e.g. MySQL table). Efficient: only sends deltas.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Complete Mode</div>
+        <div class="card-body">The <strong>entire result table</strong> is rewritten after every trigger. Use for aggregations that produce a small result that must always be fully materialised (e.g. live leaderboard).</div>
+      </div>
+    </div>
+    <div class="wl"><strong>Exam trap:</strong> Append mode cannot be used with aggregations that can retroactively change (e.g. <code>count()</code> over an unbounded group). Use Update or Complete in those cases.</div>
+  </div>
+
+  <!-- Section 5: Five Steps to Define a Streaming Query -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">5</span> Five Steps to Define a Streaming Query</div>
+    <div class="step-item"><span class="step-num">1</span><div><strong>Define input sources</strong> — where is the stream coming from? (e.g. Kafka topic, file directory, socket). Use <code>readStream</code> with the appropriate format and options.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div><strong>Transform data</strong> — apply stateless or stateful transformations (select, filter, groupBy, window aggregations). Same DataFrame/SQL API as batch.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div><strong>Define output sink and output mode</strong> — where to write results (console, file, Kafka, database) and which output mode (Append / Update / Complete).</div></div>
+    <div class="step-item"><span class="step-num">4</span><div><strong>Specify processing details</strong> — (a) <strong>Trigger interval:</strong> how often to process new data (e.g. every 5 seconds, or as fast as possible); (b) <strong>Checkpoint location:</strong> a path (e.g. HDFS) where Spark stores query progress so it can recover from failures.</div></div>
+    <div class="step-item"><span class="step-num">5</span><div><strong>Start the query</strong> — call <code>.start()</code> on the <code>writeStream</code> object. The query runs continuously in the background.</div></div>
+  </div>
+
+  <!-- Section 6: Stateless vs. Stateful Transformations -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">6</span> Stateless vs. Stateful Transformations</div>
+    <p>Not all stream operations are equal. The critical distinction is whether a transformation needs to <em>remember</em> anything from previous events.</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Stateless Transformations</div>
+        <div class="card-body">Process each row in isolation — no memory of past rows needed. Examples:<br>
+          &bull; <code>select()</code>, <code>map()</code> — project columns<br>
+          &bull; <code>filter()</code>, <code>where()</code> — discard rows<br>
+          &bull; <code>explode()</code>, <code>flatMap()</code> — expand arrays<br><br>
+          Think of these like a <strong>calculator</strong>: each input produces an output with no memory of what came before.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Stateful Transformations</div>
+        <div class="card-body">Accumulate results across many events. Think of these like a <strong>spreadsheet</strong>: cells remember previous values and update when new data arrives.<br><br>
+          The computation is: <strong>output = f(current input, previous state)</strong><br><br>
+          Each new event reads the current state, updates it, and emits a result. Example: <code>groupBy().count()</code> — each arriving event increments a per-key counter stored as state.
+        </div>
+      </div>
+    </div>
+
+    <p><strong>Concrete example — counting clicks per user:</strong></p>
+    <div class="code-block">Event 1: ("user1", click)  →  state: { user1: <span class="nm">1</span> }  →  emit user1=<span class="nm">1</span>
+Event 2: ("user1", click)  →  state: { user1: <span class="nm">2</span> }  →  emit user1=<span class="nm">2</span>
+Event 3: ("user2", click)  →  state: { user1: <span class="nm">2</span>, user2: <span class="nm">1</span> }  →  emit user2=<span class="nm">1</span></div>
+
+    <p><strong>Where is state stored?</strong> In distributed stream processors, state can live in different places — each with a latency/durability trade-off:</p>
+    <div class="grid4">
+      <div class="card">
+        <div class="card-title">In-memory variables</div>
+        <div class="card-body">Fastest reads/writes. Volatile — lost if the node crashes. Used for hot state in Flink executors and Spark executors.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Local disk</div>
+        <div class="card-body">More durable than memory. Still tied to one machine — lost if the machine is replaced. Used by embedded stores (e.g. RocksDB in Kafka Streams / Flink).</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Distributed filesystem</div>
+        <div class="card-body">Durable and replicated (e.g. HDFS, S3). Used for checkpoints — not for live reads/writes (too slow for per-event access).</div>
+      </div>
+      <div class="card">
+        <div class="card-title">External database</div>
+        <div class="card-body">e.g. Redis, Cassandra. Sharable across systems. Slowest due to network calls — use only when state must be accessed outside the stream processor.</div>
+      </div>
+    </div>
+
+    <div class="wl"><strong>Exactly-once matters here:</strong> In a distributed system, failures cause replays. Without protection: (1) process event &rarr; update state; (2) crash before checkpoint; (3) event is replayed &rarr; state updated <em>twice</em>. Exactly-once guarantees prevent this via checkpointing + deterministic replay, ensuring each event affects the state once and only once.</div>
+    <div class="il">Supported aggregation functions in stateful streaming: <code>sum()</code>, <code>mean()</code>, <code>stddev()</code>, <code>countDistinct()</code>, <code>collect_set()</code>, <code>approx_count_distinct()</code>, and more — all the same functions available in batch DataFrames.</div>
+
+    <div class="divider"></div>
+    <p><strong>Distributed state management in Structured Streaming</strong></p>
+    <p>State cannot live on one machine at scale. Spark partitions state by grouping key across executors — each executor owns an exclusive subset of keys and holds a local <strong>State Store</strong> (an in-memory key-value map) for those keys. After each micro-batch, every State Store is checkpointed to HDFS/S3 so it can be restored on failure.</p>
+
+    <!-- Slide 19 diagram -->
+    <div style="border: 0.75px solid var(--border); border-radius: 8px; padding: 13px 14px; margin-bottom: 9px; background: #fafafa; font-size: 8.5pt;">
+
+      <!-- Spark Cluster wrapper -->
+      <div style="border: 1.5px solid var(--border); border-radius: 7px; padding: 10px 10px 12px 10px; margin-bottom: 10px; position: relative;">
+        <div style="position: absolute; top: -9px; left: 12px; background: #fafafa; padding: 0 6px; font-size: 7.5pt; font-weight: 600; color: var(--text-muted); letter-spacing: 0.3px;">SPARK CLUSTER</div>
+
+        <!-- Two executors side by side -->
+        <div style="display: flex; gap: 10px; margin-top: 4px;">
+
+          <!-- Executor 1 -->
+          <div style="flex: 1; border: 1px solid var(--purple); border-radius: 6px; overflow: hidden;">
+            <div style="background: var(--purple); padding: 4px 10px; font-size: 7.5pt; font-weight: 600; color: #fff;">Executor 1 &mdash; Partition 0 (keys: a–m)</div>
+            <div style="padding: 8px 10px; background: var(--purple-light);">
+
+              <!-- Micro-batch data -->
+              <div style="font-size: 7pt; font-weight: 600; color: var(--purple); margin-bottom: 4px; letter-spacing: 0.2px;">MICRO-BATCH DATA (new events)</div>
+              <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
+                <div style="background: #fff; border: 0.75px solid var(--purple); border-radius: 3px; padding: 2px 6px; font-size: 7.5pt; color: var(--purple);">alice, click</div>
+                <div style="background: #fff; border: 0.75px solid var(--purple); border-radius: 3px; padding: 2px 6px; font-size: 7.5pt; color: var(--purple);">bob, click</div>
+                <div style="background: #fff; border: 0.75px solid var(--purple); border-radius: 3px; padding: 2px 6px; font-size: 7.5pt; color: var(--purple);">alice, click</div>
+              </div>
+
+              <!-- Arrow down into state store -->
+              <div style="text-align: center; font-size: 10pt; color: var(--purple); line-height: 1; margin-bottom: 5px;">&#8595; read &amp; update</div>
+
+              <!-- State Store box -->
+              <div style="background: #fff; border: 1px solid var(--purple); border-radius: 5px; padding: 7px 9px;">
+                <div style="font-size: 7pt; font-weight: 600; color: var(--purple); letter-spacing: 0.2px; margin-bottom: 4px;">STATE STORE (in-memory)</div>
+                <div style="font-family: var(--font-mono); font-size: 7.5pt; color: var(--text); line-height: 1.7;">
+                  alice <span style="color:var(--text-muted);">=</span> <span style="color:var(--amber);">3</span><br>
+                  bob &nbsp; <span style="color:var(--text-muted);">=</span> <span style="color:var(--amber);">1</span>
+                </div>
+              </div>
+
+              <!-- Output -->
+              <div style="margin-top: 6px; background: var(--teal-light); border: 0.75px solid var(--teal-mid); border-radius: 4px; padding: 4px 8px; font-size: 7.5pt; color: var(--teal);">
+                &#8595; output: <strong>alice=3, bob=1</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Executor 2 -->
+          <div style="flex: 1; border: 1px solid var(--blue); border-radius: 6px; overflow: hidden;">
+            <div style="background: var(--blue); padding: 4px 10px; font-size: 7.5pt; font-weight: 600; color: #fff;">Executor 2 &mdash; Partition 1 (keys: n–z)</div>
+            <div style="padding: 8px 10px; background: var(--blue-light);">
+
+              <!-- Micro-batch data -->
+              <div style="font-size: 7pt; font-weight: 600; color: var(--blue); margin-bottom: 4px; letter-spacing: 0.2px;">MICRO-BATCH DATA (new events)</div>
+              <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
+                <div style="background: #fff; border: 0.75px solid var(--blue); border-radius: 3px; padding: 2px 6px; font-size: 7.5pt; color: var(--blue);">pablo, click</div>
+                <div style="background: #fff; border: 0.75px solid var(--blue); border-radius: 3px; padding: 2px 6px; font-size: 7.5pt; color: var(--blue);">zara, click</div>
+                <div style="background: #fff; border: 0.75px solid var(--blue); border-radius: 3px; padding: 2px 6px; font-size: 7.5pt; color: var(--blue);">pablo, click</div>
+              </div>
+
+              <!-- Arrow down into state store -->
+              <div style="text-align: center; font-size: 10pt; color: var(--blue); line-height: 1; margin-bottom: 5px;">&#8595; read &amp; update</div>
+
+              <!-- State Store box -->
+              <div style="background: #fff; border: 1px solid var(--blue); border-radius: 5px; padding: 7px 9px;">
+                <div style="font-size: 7pt; font-weight: 600; color: var(--blue); letter-spacing: 0.2px; margin-bottom: 4px;">STATE STORE (in-memory)</div>
+                <div style="font-family: var(--font-mono); font-size: 7.5pt; color: var(--text); line-height: 1.7;">
+                  pablo <span style="color:var(--text-muted);">=</span> <span style="color:var(--amber);">5</span><br>
+                  zara &nbsp;<span style="color:var(--text-muted);">=</span> <span style="color:var(--amber);">2</span>
+                </div>
+              </div>
+
+              <!-- Output -->
+              <div style="margin-top: 6px; background: var(--teal-light); border: 0.75px solid var(--teal-mid); border-radius: 4px; padding: 4px 8px; font-size: 7.5pt; color: var(--teal);">
+                &#8595; output: <strong>pablo=5, zara=2</strong>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- end executors row -->
+      </div><!-- end cluster wrapper -->
+
+      <!-- Checkpoint arrows down -->
+      <div style="display: flex; gap: 10px; margin-bottom: 6px; padding: 0 60px;">
+        <div style="flex: 1; text-align: center;">
+          <div style="font-size: 8.5pt; color: var(--text-muted);">&#8595; checkpoint</div>
+        </div>
+        <div style="flex: 1; text-align: center;">
+          <div style="font-size: 8.5pt; color: var(--text-muted);">&#8595; checkpoint</div>
+        </div>
+      </div>
+
+      <!-- HDFS/S3 bar -->
+      <div style="background: var(--gray-light); border: 1.5px solid var(--border); border-radius: 6px; padding: 8px 14px; text-align: center;">
+        <div style="font-size: 7.5pt; font-weight: 600; color: var(--gray); letter-spacing: 0.3px; margin-bottom: 2px;">HDFS / S3 &mdash; Persistent Checkpoint Storage</div>
+        <div style="font-size: 7.5pt; color: var(--text-muted);">Versioned snapshots of all State Store partitions &middot; reloaded on executor failure &middot; enables exactly-once guarantees</div>
+      </div>
+
+      <!-- Key insight footer -->
+      <div style="margin-top: 8px; font-size: 7.5pt; color: var(--text-muted); line-height: 1.55;">
+        <strong style="color: var(--text);">Key property:</strong> State is partitioned by grouping key — all events for <code>alice</code> always go to Executor 1, all events for <code>pablo</code> always go to Executor 2. Each executor reads and writes only its own State Store, with no cross-machine state access per event.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Section 7: Time Semantics & Watermarks -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">7</span> Time Semantics &mdash; Processing Time vs. Event Time</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Processing Time</div>
+        <div class="card-body">The wall-clock time <em>at the Spark cluster</em> when the record is processed. Simple to implement but <strong>not deterministic</strong> — if you replay the same stream faster, you get different window groupings. Affected by network delays.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Event Time</div>
+        <div class="card-body">The timestamp <em>embedded in the event itself</em> — when the event actually happened (e.g. the time a sensor reading was taken, or the time a transaction was made). <strong>Deterministic</strong> — replaying the same stream always yields the same results, regardless of processing speed.</div>
+      </div>
+    </div>
+    <p><strong>Analogy:</strong> Imagine you are on a train in a tunnel and send a message at 3 pm, but your phone only connects and sends it at 3:05 pm. The <em>event time</em> is 3:00 pm (when you composed it); the <em>processing time</em> is 3:05 pm (when the server received it).</p>
+    <div class="hl"><strong>Why event time matters:</strong> Operations based on event time are predictable and deterministic. A window from 3:00–3:05 will always contain the same events no matter how fast or slow the stream is processed, or how delayed delivery was. Processing-time windows do not have this guarantee.</div>
+
+    <div class="divider"></div>
+    <p>The query below groups sensor readings into 5-minute <strong>tumbling windows</strong> based on event time and counts how many readings fall in each window per sensor:</p>
+    <div class="code-block">sensorReadings.<span class="fn">groupBy</span>(<span class="st">'sensorId'</span>, <span class="fn">window</span>(<span class="st">"eventTime"</span>, <span class="st">"5 minutes"</span>)).<span class="fn">count</span>()</div>
+
+    <p>The problem: sensors can be offline, networks lag, and events do not always arrive in the order they occurred. The diagram below shows how events with event times inside Window 1 can <strong>arrive late in processing time</strong> — after Window 1 has already been finalised — and therefore be silently missed.</p>
+
+    <!-- Tumbling window / late event diagram -->
+    <div style="border: 0.75px solid var(--border); border-radius: 8px; padding: 13px 14px 10px 14px; margin-bottom: 9px; background: #fafafa;">
+      <div style="font-size: 7.5pt; font-weight: 600; color: var(--text-muted); letter-spacing: 0.4px; margin-bottom: 10px;">TUMBLING WINDOWS &mdash; HOW LATE EVENTS ARE MISSED</div>
+
+      <!-- Scale row (offset to align with timeline) -->
+      <div style="display: flex; margin-left: 100px; margin-bottom: 3px; position: relative;">
+        <div style="position: absolute; left: 0%;   font-size: 6.5pt; color: var(--text-muted); transform: translateX(-50%);">0 min</div>
+        <div style="position: absolute; left: 20%;  font-size: 6.5pt; color: var(--text-muted); transform: translateX(-50%);">2</div>
+        <div style="position: absolute; left: 40%;  font-size: 6.5pt; color: var(--text-muted); transform: translateX(-50%);">4</div>
+        <div style="position: absolute; left: 50%;  font-size: 6.5pt; color: var(--amber); font-weight: 600; transform: translateX(-50%);">5</div>
+        <div style="position: absolute; left: 60%;  font-size: 6.5pt; color: var(--text-muted); transform: translateX(-50%);">6</div>
+        <div style="position: absolute; left: 80%;  font-size: 6.5pt; color: var(--text-muted); transform: translateX(-50%);">8</div>
+        <div style="position: absolute; left: 100%; font-size: 6.5pt; color: var(--text-muted); transform: translateX(-50%);">10 min</div>
+        <div style="height: 12px;">&nbsp;</div>
+      </div>
+
+      <!-- ROW 1: Processing Time / Input Stream -->
+      <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <div style="width: 100px; flex-shrink: 0; padding-right: 8px;">
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--text);">Processing</div>
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--text);">Time</div>
+          <div style="font-size: 6.5pt; color: var(--text-muted); margin-top: 1px;">(when event arrives)</div>
+        </div>
+        <div style="flex: 1; position: relative; height: 62px; background: var(--gray-light); border: 0.75px solid var(--border); border-radius: 5px;">
+
+          <!-- Horizontal timeline bar -->
+          <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1.5px; background: var(--border); transform: translateY(-50%);"></div>
+
+          <!-- W1 finalised dashed line at exactly pt=5min = 50% -->
+          <div style="position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1.5px dashed #EF9F27; z-index: 2;"></div>
+          <div style="position: absolute; left: 51%; top: 3px; font-size: 6.5pt; color: var(--amber); font-weight: 600; white-space: nowrap;">W1 finalised</div>
+
+          <!-- E1: pt=10% et=1min ✓ W1 -->
+          <div style="position: absolute; left: calc(10% - 17px); top: 8px; width: 34px; background: var(--teal-light); border: 1.5px solid var(--teal-mid); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--teal);">E1</div>
+            <div style="font-size: 6pt; color: var(--teal);">et=1m</div>
+          </div>
+
+          <!-- E2: pt=30% et=3min ✓ W1 -->
+          <div style="position: absolute; left: calc(30% - 17px); top: 8px; width: 34px; background: var(--teal-light); border: 1.5px solid var(--teal-mid); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--teal);">E2</div>
+            <div style="font-size: 6pt; color: var(--teal);">et=3m</div>
+          </div>
+
+          <!-- E3: pt=70% et=4min ✗ LATE for W1 -->
+          <div style="position: absolute; left: calc(70% - 17px); top: 8px; width: 34px; background: var(--red-light); border: 1.5px solid var(--red); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--red);">E3</div>
+            <div style="font-size: 6pt; color: var(--red);">et=4m</div>
+          </div>
+          <div style="position: absolute; left: calc(70% - 17px); bottom: 4px; width: 34px; text-align: center; font-size: 6pt; font-weight: 600; color: var(--red);">LATE ✗</div>
+
+          <!-- E4: pt=80% et=6min ✓ W2 -->
+          <div style="position: absolute; left: calc(80% - 17px); top: 8px; width: 34px; background: var(--blue-light); border: 1.5px solid var(--blue); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--blue);">E4</div>
+            <div style="font-size: 6pt; color: var(--blue);">et=6m</div>
+          </div>
+
+          <!-- E5: pt=90% et=2min ✗ VERY LATE for W1 -->
+          <div style="position: absolute; left: calc(90% - 17px); top: 8px; width: 34px; background: var(--red-light); border: 1.5px solid var(--red); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--red);">E5</div>
+            <div style="font-size: 6pt; color: var(--red);">et=2m</div>
+          </div>
+          <div style="position: absolute; left: calc(90% - 17px); bottom: 4px; width: 34px; text-align: center; font-size: 6pt; font-weight: 600; color: var(--red);">LATE ✗</div>
+
+        </div>
+      </div>
+
+      <!-- ROW 2: Event Time + Tumbling Windows -->
+      <div style="display: flex; align-items: flex-start;">
+        <div style="width: 100px; flex-shrink: 0; padding-right: 8px; padding-top: 8px;">
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--text);">Event</div>
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--text);">Time</div>
+          <div style="font-size: 6.5pt; color: var(--text-muted); margin-top: 1px;">(when event occurred)</div>
+        </div>
+        <div style="flex: 1; position: relative; height: 76px;">
+
+          <!-- Window 1: et 0-5min = 0% to 50% -->
+          <div style="position: absolute; left: 0; width: 50%; height: 34px; background: var(--teal-light); border: 1.5px solid var(--teal-mid); border-radius: 5px 0 0 5px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--teal);">Window 1</div>
+            <div style="font-size: 6.5pt; color: var(--teal);">et: 0 – 5 min</div>
+          </div>
+
+          <!-- Window 2: et 5-10min = 50% to 100% -->
+          <div style="position: absolute; left: 50%; width: 50%; height: 34px; background: var(--blue-light); border: 1.5px solid var(--blue); border-left: none; border-radius: 0 5px 5px 0; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--blue);">Window 2</div>
+            <div style="font-size: 6.5pt; color: var(--blue);">et: 5 – 10 min</div>
+          </div>
+
+          <!-- Event time positions (where events BELONG) -->
+
+          <!-- E1: et=1 (10%) ✓ -->
+          <div style="position: absolute; left: calc(10% - 12px); top: 38px; width: 24px; height: 16px; background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--teal);">E1</div>
+
+          <!-- E2: et=3 (30%) ✓ -->
+          <div style="position: absolute; left: calc(30% - 12px); top: 38px; width: 24px; height: 16px; background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--teal);">E2</div>
+
+          <!-- E3: et=4 (40%) — belongs here but MISSED -->
+          <div style="position: absolute; left: calc(40% - 12px); top: 38px; width: 24px; height: 16px; background: var(--red-light); border: 1px dashed var(--red); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--red); opacity: 0.8;">E3</div>
+          <div style="position: absolute; left: calc(40% - 16px); top: 57px; width: 32px; font-size: 6pt; color: var(--red); text-align: center; font-weight: 600;">missed</div>
+
+          <!-- E5: et=2 (20%) — belongs here but MISSED -->
+          <div style="position: absolute; left: calc(20% - 12px); top: 38px; width: 24px; height: 16px; background: var(--red-light); border: 1px dashed var(--red); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--red); opacity: 0.8;">E5</div>
+          <div style="position: absolute; left: calc(20% - 16px); top: 57px; width: 32px; font-size: 6pt; color: var(--red); text-align: center; font-weight: 600;">missed</div>
+
+          <!-- E4: et=6 (60%) ✓ W2 -->
+          <div style="position: absolute; left: calc(60% - 12px); top: 38px; width: 24px; height: 16px; background: var(--blue-light); border: 1px solid var(--blue); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--blue);">E4</div>
+
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div style="display: flex; gap: 14px; margin-top: 10px; flex-wrap: wrap; font-size: 7.5pt; color: var(--text-muted);">
+        <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 11px; height: 11px; background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: 2px;"></div> On time — captured by correct window</div>
+        <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 11px; height: 11px; background: var(--blue-light); border: 1px solid var(--blue); border-radius: 2px;"></div> On time — Window 2</div>
+        <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 11px; height: 11px; background: var(--red-light); border: 1px dashed var(--red); border-radius: 2px;"></div> Late — event time belongs in W1 but arrived after W1 was finalised</div>
+      </div>
+      <div style="margin-top: 7px; font-size: 7.5pt; color: var(--text-muted); line-height: 1.55;"><strong style="color: var(--text);">Key insight:</strong> E3 (et=4m) and E5 (et=2m) both <em>belong</em> in Window 1, but they arrive in processing time after W1 has been finalised. Without a mechanism to wait for them, they are silently dropped. <strong>Watermarks</strong> solve this by letting you specify how long to keep a window open for late arrivals.</div>
+    </div>
+
+    <p>Contrast with a <strong>sliding window</strong> — the third argument sets a slide interval smaller than the window duration, so consecutive windows overlap:</p>
+    <div class="code-block">sensorReadings.<span class="fn">groupBy</span>(<span class="st">"sensorId"</span>, <span class="fn">window</span>(<span class="st">"eventTime"</span>, <span class="st">"10 minutes"</span>, <span class="st">"5 minutes"</span>)).<span class="fn">count</span>()</div>
+
+    <p>With a 10-minute window and 5-minute slide, a new window opens every 5 minutes. Each event with event time in the <strong>overlap zone (et 5–10 min)</strong> is counted in <em>two</em> windows simultaneously. The late-event problem still applies — but an event late for one window can still be on time for another.</p>
+
+    <!-- Sliding window diagram -->
+    <div style="border: 0.75px solid var(--border); border-radius: 8px; padding: 13px 14px 10px 14px; margin-bottom: 9px; background: #fafafa;">
+      <div style="font-size: 7.5pt; font-weight: 600; color: var(--text-muted); letter-spacing: 0.4px; margin-bottom: 10px;">SLIDING WINDOWS EXAMPLE &mdash; 10-MINUTE WINDOW, 5-MINUTE SLIDE</div>
+
+      <!-- Scale row -->
+      <div style="display: flex; margin-left: 100px; margin-bottom: 3px; position: relative; height: 14px;">
+        <div style="position: absolute; left: 0%;     font-size: 6.5pt; color: var(--text-muted);">0 min</div>
+        <div style="position: absolute; left: 25%;  font-size: 6.5pt; color: var(--text-muted); transform: translateX(-50%);">5</div>
+        <div style="position: absolute; left: 50%;  font-size: 6.5pt; color: var(--amber);      transform: translateX(-50%); font-weight: 600;">10</div>
+        <div style="position: absolute; left: 75%;   font-size: 6.5pt; color: var(--text-muted); transform: translateX(-100%);">15</div>
+        <div style="position: absolute; left: 100%;   font-size: 6.5pt; color: var(--text-muted); transform: translateX(-100%);">20</div>
+      </div>
+
+      <!-- ROW 1: Processing Time -->
+      <div style="display: flex; align-items: center; margin-bottom: 10px;">
+        <div style="width: 100px; flex-shrink: 0; padding-right: 8px;">
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--text);">Processing</div>
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--text);">Time</div>
+          <div style="font-size: 6.5pt; color: var(--text-muted); margin-top: 1px;">(when event arrives)</div>
+        </div>
+        <div style="flex: 1; position: relative; height: 62px; background: var(--gray-light); border: 0.75px solid var(--border); border-radius: 5px;">
+
+          <div style="position: absolute; top: 50%; left: 0; right: 0; height: 1.5px; background: var(--border); transform: translateY(-50%);"></div>
+
+          <!-- W_A finalised dashed line at exactly pt=10min = 50% -->
+          <div style="position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1.5px dashed #EF9F27; z-index: 2;"></div>
+          <div style="position: absolute; left: 51%; top: 3px; font-size: 6.5pt; color: var(--amber); font-weight: 600; white-space: nowrap;">W_A finalised</div>
+
+          <!-- W_B finalised dashed line at exactly pt=10min = 75% -->
+          <div style="position: absolute; left: 75%; top: 0; bottom: 0; border-left: 1.5px dashed #EF9F27; z-index: 2;"></div>
+          <div style="position: absolute; left: 76%; top: 3px; font-size: 6.5pt; color: var(--amber); font-weight: 600; white-space: nowrap;">W_B finalised</div>
+
+          <!-- E1: pt=10% (2min) et=1min — W_A only (teal) -->
+          <div style="position: absolute; left: calc(10% - 17px); top: 8px; width: 34px; background: var(--teal-light); border: 1.5px solid var(--teal-mid); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--teal);">E1</div>
+            <div style="font-size: 6pt; color: var(--teal);">et=1m</div>
+          </div>
+
+          <!-- E2: pt=40% (8min) et=7min — W_A + W_B overlap (purple) -->
+          <div style="position: absolute; left: calc(40% - 17px); top: 8px; width: 34px; background: var(--purple-light); border: 1.5px solid var(--purple); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--purple);">E2</div>
+            <div style="font-size: 6pt; color: var(--purple);">et=7m</div>
+          </div>
+          <div style="position: absolute; left: calc(40% - 17px); bottom: 3px; width: 34px; text-align: center; font-size: 6pt; color: var(--purple); font-weight: 600;">W_A+W_B</div>
+
+          <!-- E3: pt=95% (19min) et=3min — LATE for W_A, et not in W_B (red) -->
+          <div style="position: absolute; left: calc(95% - 17px); top: 8px; width: 34px; background: var(--red-light); border: 1.5px solid var(--red); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--red);">E3</div>
+            <div style="font-size: 6pt; color: var(--red);">et=3m</div>
+          </div>
+          <div style="position: absolute; left: calc(95% - 17px); bottom: 3px; width: 34px; text-align: center; font-size: 6pt; font-weight: 600; color: var(--red);">LATE ✗</div>
+
+          <!-- E4: pt=60% (12min) et=8min — LATE for W_A, still ✓ for W_B -->
+          <div style="position: absolute; left: calc(60% - 17px); top: 8px; width: 34px; background: var(--blue-light); border: 1.5px solid var(--red); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--blue);">E4</div>
+            <div style="font-size: 6pt; color: var(--blue);">et=8m</div>
+          </div>
+          <div style="position: absolute; left: calc(60% - 22px); bottom: 3px; width: 44px; text-align: center; font-size: 6pt; font-weight: 600; color: var(--red);">late W_A</div>
+
+          <!-- E5: pt=70% (14min) et=12min — W_B only (blue) -->
+          <div style="position: absolute; left: calc(70% - 17px); top: 8px; width: 34px; background: var(--blue-light); border: 1.5px solid var(--blue); border-radius: 4px; text-align: center; padding: 2px 0; z-index:3;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--blue);">E5</div>
+            <div style="font-size: 6pt; color: var(--blue);">et=12m</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ROW 2: Event Time + Sliding Windows (two stacked bars) -->
+      <div style="display: flex; align-items: flex-start;">
+        <div style="width: 100px; flex-shrink: 0; padding-right: 8px; padding-top: 8px;">
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--text);">Event</div>
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--text);">Time</div>
+          <div style="font-size: 6.5pt; color: var(--text-muted); margin-top: 1px;">(when event occurred)</div>
+        </div>
+        <div style="flex: 1; position: relative; height: 96px;">
+
+          <!-- W_A bar: 0% to 50% (et 0–10 min) -->
+          <div style="position: absolute; left: 0; width: 50%; height: 26px; top: 0; background: var(--teal-light); border: 1.5px solid var(--teal-mid); border-radius: 5px; display: flex; align-items: center; padding: 0 8px;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--teal);">W_A &nbsp;<span style="font-weight:400;">et: 0–10 min</span></div>
+          </div>
+
+          <!-- W_B bar: 25% to 75% (et 5–15 min) -->
+          <div style="position: absolute; left: 25%; width: 50%; height: 26px; top: 30px; background: var(--blue-light); border: 1.5px solid var(--blue); border-radius: 5px; display: flex; align-items: center; padding: 0 8px;">
+            <div style="font-size: 7.5pt; font-weight: 600; color: var(--blue);">W_B &nbsp;<span style="font-weight:400;">et: 5–15 min</span></div>
+          </div>
+
+          <!-- Overlap zone bracket label -->
+          <div style="position: absolute; left: 25%; width: 25%; top: 58px; border-left: 1.5px solid var(--purple); border-right: 1.5px solid var(--purple); border-bottom: 1.5px solid var(--purple); height: 6px; border-radius: 0 0 3px 3px;"></div>
+          <div style="position: absolute; left: 25%; width: 25%; top: 65px; text-align: center; font-size: 6.5pt; color: var(--purple); font-weight: 600;">overlap zone (et 5–10)</div>
+
+          <!-- Event markers at their et positions -->
+          <!-- E1: et=1 (5%) teal — W_A only -->
+          <div style="position: absolute; left: calc(5% - 12px); top: 74px; width: 24px; height: 16px; background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--teal);">E1</div>
+
+          <!-- E2: et=7 (35%) purple — overlap W_A+W_B -->
+          <div style="position: absolute; left: calc(35% - 12px); top: 74px; width: 24px; height: 16px; background: var(--purple-light); border: 1px solid var(--purple); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--purple);">E2</div>
+
+          <!-- E3: et=3 (15%) red — missed (late for W_A, not in W_B) -->
+          <div style="position: absolute; left: calc(15% - 12px); top: 74px; width: 24px; height: 16px; background: var(--red-light); border: 1px dashed var(--red); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--red); opacity: 0.8;">E3</div>
+
+          <!-- E4: et=8 (40%) — blue/red split: late W_A but ✓ W_B -->
+          <div style="position: absolute; left: calc(40% - 12px); top: 74px; width: 24px; height: 16px; background: var(--blue-light); border: 1px solid var(--red); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--blue);">E4</div>
+
+          <!-- E5: et=12 (60%) blue — W_B only -->
+          <div style="position: absolute; left: calc(60% - 12px); top: 74px; width: 24px; height: 16px; background: var(--blue-light); border: 1px solid var(--blue); border-radius: 3px; text-align: center; line-height: 16px; font-size: 7pt; font-weight: 600; color: var(--blue);">E5</div>
+
+        </div>
+      </div>
+
+      <!-- Legend -->
+      <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; font-size: 7.5pt; color: var(--text-muted);">
+        <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 11px; height: 11px; background: var(--teal-light); border: 1px solid var(--teal-mid); border-radius: 2px;"></div> W_A only</div>
+        <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 11px; height: 11px; background: var(--purple-light); border: 1px solid var(--purple); border-radius: 2px;"></div> W_A + W_B (overlap zone — counted in both)</div>
+        <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 11px; height: 11px; background: var(--blue-light); border: 1px solid var(--blue); border-radius: 2px;"></div> W_B only</div>
+        <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 11px; height: 11px; background: var(--blue-light); border: 1px solid var(--red); border-radius: 2px;"></div> Late for W_A, still captured by W_B</div>
+        <div style="display: flex; align-items: center; gap: 4px;"><div style="width: 11px; height: 11px; background: var(--red-light); border: 1px dashed var(--red); border-radius: 2px;"></div> Late &amp; missed by all windows</div>
+      </div>
+      <div style="margin-top: 7px; font-size: 7.5pt; color: var(--text-muted); line-height: 1.55;">
+        <strong style="color: var(--text);">Key insight:</strong> E2 (et=7m) falls in the overlap zone and is counted in <em>both</em> W_A and W_B. E4 (et=8m) arrives too late for W_A but is still captured by W_B — sliding windows give late events a second chance. E3 (et=3m) is outside W_B's range entirely, so it is missed regardless.
+      </div>
+    </div>
+
+    <p><strong>The Late Data Problem:</strong> If we use event time, how long do we wait before closing a window? Events can arrive out of order due to network lag, retries, or mobile devices going offline. We need a mechanism to say "I am reasonably sure I have seen all events up to time T" — this is a <strong>watermark</strong>.</p>
+    <div class="hl"><strong>Watermark:</strong> A threshold that tells the system: "No more events with event-time &le; T should be expected." Once the watermark passes a window's end time, that window is finalised and its state can be discarded.</div>
+
+    <p>In Spark Structured Streaming, a watermark is specified as a <strong>delay tolerance</strong> on an event-time column:</p>
+    <div class="code-block"><span class="cm"># Tolerate up to 10 minutes of late arrival</span>
+streamDF.<span class="fn">withWatermark</span>(<span class="st">"eventTime"</span>, <span class="st">"10 minutes"</span>)
+        .<span class="fn">groupBy</span>(<span class="fn">window</span>(<span class="st">"eventTime"</span>, <span class="st">"5 minutes"</span>), <span class="st">"userId"</span>)
+        .<span class="fn">count</span>()</div>
+    <p>Spark keeps the window state alive for up to 10 minutes beyond the window end. Events arriving more than 10 minutes late are silently dropped.</p>
+    <div class="wl"><strong>Exam tip:</strong> Watermarks serve a dual purpose in Spark: (1) they define when late data is accepted/dropped, and (2) they allow Spark to clean up old window state from memory — without watermarks, stateful aggregations would accumulate state forever and eventually run out of memory.</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title"><span class="badge bp">Extra</span> Performance Tuning &mdash; Spark Structured Streaming</div>
+
+    <p style="margin:0 0 10px 0; font-size:9.5pt;">Beyond tuning the Spark SQL engine (e.g. Catalyst optimiser settings), streaming workloads have unique operational demands that require additional consideration. These apply specifically when running 24/7 continuous streaming pipelines.</p>
+
+    <div class="card-grid" style="grid-template-columns: 1fr 1fr;">
+
+      <div class="card">
+        <div class="card-title">Cluster Resource Provisioning</div>
+        <p style="margin:0; font-size:9pt;">Streaming jobs run <strong>continuously, 24/7</strong> — unlike batch jobs that spin up and terminate. This means you must provision enough executors and memory to handle <em>peak throughput</em> at all times, not just average load. Under-provisioning leads to backpressure: incoming data accumulates faster than it can be processed, causing ever-growing queues and eventual failure.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Number of Shuffle Partitions</div>
+        <p style="margin:0; font-size:9pt;">In batch queries, the default shuffle partition count (e.g. 200) is usually fine because each job processes a large dataset. In streaming, each micro-batch is small — using 200 partitions for a tiny batch creates massive scheduler overhead. The partition count should be set <strong>much lower</strong> (e.g. equal to the number of cores) to avoid this per-micro-batch overhead.</p>
+        <div class="highlight-box" style="margin-top:8px; padding:6px 10px;">
+          <code style="font-size:8.5pt;">spark.conf.set("spark.sql.shuffle.partitions", "8")</code>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Source Rate Limits</div>
+        <p style="margin:0; font-size:9pt;">A burst of incoming data (e.g. a spike in Kafka messages) could cause one micro-batch to be enormous, destabilising the pipeline. Setting a <strong>max records per trigger</strong> limit on the source caps ingestion rate per batch, smoothing out spikes and preventing out-of-memory errors.</p>
+        <div class="highlight-box" style="margin-top:8px; padding:6px 10px;">
+          <code style="font-size:8.5pt;">df.readStream.option("maxOffsetsPerTrigger", "10000")</code>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Multiple Streaming Queries in One App</div>
+        <p style="margin:0; font-size:9pt;">You can run <strong>multiple streaming queries concurrently within a single Spark application</strong>, sharing the same SparkSession and cluster resources. This is useful for processing different topics or applying different transformations to the same stream in parallel. However, resource contention between queries must be managed — use Spark's fair scheduler to ensure each query gets a fair share of executor threads.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Section 8: Apache Flink — Architecture -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">8</span> Apache Flink &mdash; Architecture &amp; Dataflow Model</div>
+    <p>Flink is a <strong>true continuous stream processing engine</strong> — unlike Spark's micro-batch approach, Flink processes each event individually as it arrives (event-driven streaing application), achieving <strong>millisecond</strong> latency. Flink also supports batch processing, but streaming is its native model.</p>
+
+    <div class="hl"><strong>Dataflow model:</strong> A Flink application is expressed as a <strong>dataflow graph</strong> — a directed acyclic graph (DAG) where <strong>nodes are operators</strong> (transformations) and <strong>edges are data dependencies</strong> (streams of records flowing between operators). This logical graph is compiled into a physical execution plan where each operator runs as parallel tasks.</div>
+
+    <!-- Dataflow graph example -->
+    <div style="background: var(--bg-alt); border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; margin: 10px 0;">
+      <div style="font-size: 9pt; font-weight: 600; color: var(--text); margin-bottom: 8px; text-align: center; letter-spacing: 0.03em;">Example Dataflow Graph — Trending Twitter Hashtags</div>
+      <svg viewBox="0 0 540 410" style="width:100%; height:auto; display:block;" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="dfa" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0.5 L0,6.5 L6,3.5 z" fill="#999"/>
+          </marker>
+          <marker id="dfa-t" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0.5 L0,6.5 L6,3.5 z" fill="#1a8c6e"/>
+          </marker>
+          <marker id="dfa-o" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+            <path d="M0,0.5 L0,6.5 L6,3.5 z" fill="#c87020"/>
+          </marker>
+        </defs>
+
+        <!-- Layer labels (left margin) -->
+        <text x="92" y="46"  font-size="9" font-weight="700" fill="#7c5cbf" text-anchor="end">Source</text>
+        <text x="92" y="146" font-size="9" font-weight="700" fill="#1a8c6e" text-anchor="end">Extract</text>
+        <text x="92" y="158" font-size="9" font-weight="700" fill="#1a8c6e" text-anchor="end">Hashtags</text>
+        <text x="92" y="270" font-size="9" font-weight="700" fill="#3a6bbf" text-anchor="end">Count</text>
+        <text x="92" y="374" font-size="9" font-weight="700" fill="#c87020" text-anchor="end">Sink</text>
+
+        <!-- ── EDGES (drawn before nodes so boxes sit on top) ── -->
+
+        <!-- S1 → E1 -->
+        <line x1="185" y1="76" x2="185" y2="118" stroke="#bbb" stroke-width="1.5" marker-end="url(#dfa)"/>
+        <!-- S2 → E2 -->
+        <line x1="405" y1="76" x2="405" y2="118" stroke="#bbb" stroke-width="1.5" marker-end="url(#dfa)"/>
+
+        <!-- E1 → C1  straight down (sends #Flink, same-column) -->
+        <line x1="142" y1="182" x2="142" y2="242" stroke="#1a8c6e" stroke-width="1.5" marker-end="url(#dfa-t)"/>
+        <!-- E1 → C2  diagonal right (sends #Apache, cross-column) -->
+        <path d="M228,182 Q295,235 362,242" stroke="#c87020" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#dfa-o)"/>
+        <!-- E2 → C1  diagonal left (sends #Flink, cross-column) -->
+        <path d="M362,182 Q295,197 228,242" stroke="#1a8c6e" stroke-width="1.5" fill="none" stroke-dasharray="5,3" marker-end="url(#dfa-t)"/>
+        <!-- E2 → C2  straight down (sends #meetup, same-column) -->
+        <line x1="448" y1="182" x2="448" y2="242" stroke="#c87020" stroke-width="1.5" marker-end="url(#dfa-o)"/>
+
+        <!-- Edge labels -->
+        <text x="128" y="218" font-size="8" fill="#1a8c6e" text-anchor="end">#Flink</text>
+        <text x="232" y="197" font-size="8" fill="#c87020" text-anchor="start">#Apache</text>
+        <text x="358" y="197" font-size="8" fill="#1a8c6e" text-anchor="end">#Flink</text>
+        <text x="453" y="218" font-size="8" fill="#c87020" text-anchor="start">#meetup</text>
+
+        <!-- key-partitioned shuffle annotation -->
+        <text x="295" y="238" font-size="7" fill="#999" text-anchor="middle" font-style="italic">&#x21c4; key-partitioned shuffle (same hashtag always → same Count node)</text>
+
+        <!-- C1 → Sink -->
+        <line x1="185" y1="306" x2="238" y2="346" stroke="#bbb" stroke-width="1.5" marker-end="url(#dfa)"/>
+        <!-- C2 → Sink -->
+        <line x1="405" y1="306" x2="352" y2="346" stroke="#bbb" stroke-width="1.5" marker-end="url(#dfa)"/>
+
+        <!-- ── NODES ── -->
+
+        <!-- Layer 1: Source -->
+        <rect x="100" y="12" width="170" height="64" rx="6" fill="#f0ebff" stroke="#7c5cbf" stroke-width="1.5"/>
+        <text x="185" y="31" font-size="9" font-weight="bold" fill="#7c5cbf" text-anchor="middle">Tweets Source [1]</text>
+        <text x="185" y="48" font-size="7.5" fill="#555" text-anchor="middle" font-style="italic">"Just wrote my first</text>
+        <text x="185" y="62" font-size="7.5" fill="#555" text-anchor="middle" font-style="italic">#Apache #Flink program!"</text>
+
+        <rect x="320" y="12" width="170" height="64" rx="6" fill="#f0ebff" stroke="#7c5cbf" stroke-width="1.5"/>
+        <text x="405" y="31" font-size="9" font-weight="bold" fill="#7c5cbf" text-anchor="middle">Tweets Source [2]</text>
+        <text x="405" y="48" font-size="7.5" fill="#555" text-anchor="middle" font-style="italic">"Anyone going to the</text>
+        <text x="405" y="62" font-size="7.5" fill="#555" text-anchor="middle" font-style="italic">#Flink #meetup tonight?"</text>
+
+        <!-- Layer 2: Extract Hashtags -->
+        <rect x="100" y="118" width="170" height="64" rx="6" fill="#e6f5f0" stroke="#1a8c6e" stroke-width="1.5"/>
+        <text x="185" y="137" font-size="9" font-weight="bold" fill="#1a8c6e" text-anchor="middle">Extract Hashtags [1]</text>
+        <text x="185" y="154" font-size="7.5" fill="#555" text-anchor="middle">emits: #Apache, #Flink</text>
+        <text x="185" y="169" font-size="7"   fill="#777" text-anchor="middle">routes each tag by key</text>
+
+        <rect x="320" y="118" width="170" height="64" rx="6" fill="#e6f5f0" stroke="#1a8c6e" stroke-width="1.5"/>
+        <text x="405" y="137" font-size="9" font-weight="bold" fill="#1a8c6e" text-anchor="middle">Extract Hashtags [2]</text>
+        <text x="405" y="154" font-size="7.5" fill="#555" text-anchor="middle">emits: #Flink, #meetup</text>
+        <text x="405" y="169" font-size="7"   fill="#777" text-anchor="middle">routes each tag by key</text>
+
+        <!-- Layer 3: Count -->
+        <rect x="100" y="242" width="170" height="64" rx="6" fill="#e8eef9" stroke="#3a6bbf" stroke-width="1.5"/>
+        <text x="185" y="261" font-size="9"   font-weight="bold" fill="#3a6bbf" text-anchor="middle">Count [1]</text>
+        <text x="185" y="277" font-size="7.5" fill="#555" text-anchor="middle">all #Flink events (E1 + E2)</text>
+        <text x="185" y="294" font-size="8.5" font-weight="bold" fill="#1a8c6e" text-anchor="middle">#Flink: 2</text>
+
+        <rect x="320" y="242" width="170" height="64" rx="6" fill="#e8eef9" stroke="#3a6bbf" stroke-width="1.5"/>
+        <text x="405" y="261" font-size="9"   font-weight="bold" fill="#3a6bbf" text-anchor="middle">Count [2]</text>
+        <text x="405" y="277" font-size="7.5" fill="#555" text-anchor="middle">#Apache (E1), #meetup (E2)</text>
+        <text x="405" y="294" font-size="8.5" font-weight="bold" fill="#c87020" text-anchor="middle">#Apache: 1  #meetup: 1</text>
+
+        <!-- Layer 4: Sink -->
+        <rect x="158" y="346" width="274" height="50" rx="6" fill="#fdf0e0" stroke="#c87020" stroke-width="1.5"/>
+        <text x="295" y="366" font-size="9"   font-weight="bold" fill="#c87020" text-anchor="middle">Trending Topics Sink</text>
+        <text x="295" y="384" font-size="8"   fill="#555" text-anchor="middle">#Flink: 2  |  #Apache: 1  |  #meetup: 1</text>
+      </svg>
+      <div style="font-size: 7.5pt; color: #666; text-align: center; margin-top: 4px;">
+        Solid edges = same-column (local) routing &nbsp;|&nbsp; Dashed edges = cross-column key-partitioned shuffle
+      </div>
+    </div>
+
+    <p><strong>Kafka as Event Log:</strong> Flink (and Spark Streaming) commonly ingest data from <strong>Apache Kafka</strong>, a distributed message queue. Kafka partitions messages by a hash key across multiple partitions. Consumers read from a partition at a specific <em>offset</em> — a sequential position number. This decouples producers from consumers, supports asynchronous data transfer, and enables exactly-once semantics when combined with Flink's checkpointing.</p>
+
+    <!-- Kafka as Event Log diagram -->
+    <div style="background: var(--bg-alt); border: 1px solid var(--border); border-radius: 8px; padding: 16px 20px; margin: 12px 0; font-size: 8.5pt;">
+      <div style="font-size: 9pt; font-weight: 600; color: var(--text); margin-bottom: 14px; text-align: center; letter-spacing: 0.03em;">Kafka as Distributed Event Log</div>
+
+      <!-- Producer row -->
+      <div style="display: flex; justify-content: center; gap: 16px; margin-bottom: 10px;">
+        <div style="background: var(--purple-light, #f0ebff); border: 1.5px solid var(--purple, #7c5cbf); border-radius: 6px; padding: 5px 18px; font-size: 8pt; font-weight: 600; color: var(--purple, #7c5cbf);">Producer A</div>
+        <div style="background: var(--purple-light, #f0ebff); border: 1.5px solid var(--purple, #7c5cbf); border-radius: 6px; padding: 5px 18px; font-size: 8pt; font-weight: 600; color: var(--purple, #7c5cbf);">Producer B</div>
+        <div style="background: var(--purple-light, #f0ebff); border: 1.5px solid var(--purple, #7c5cbf); border-radius: 6px; padding: 5px 18px; font-size: 8pt; font-weight: 600; color: var(--purple, #7c5cbf);">Producer C</div>
+      </div>
+
+      <!-- Down arrows to Kafka broker -->
+      <div style="display: flex; justify-content: center; gap: 88px; margin-bottom: 2px; color: #888; font-size: 10pt; line-height:1;">&#x2193; &nbsp;&nbsp;&#x2193; &nbsp;&nbsp;&#x2193;</div>
+
+      <!-- Kafka broker label -->
+      <div style="text-align: center; margin-bottom: 8px;">
+        <span style="background: #333; color: #fff; font-size: 7.5pt; font-weight: 600; border-radius: 4px; padding: 2px 10px; letter-spacing: 0.05em;">KAFKA BROKER (Topic: sensorEvents)</span>
+      </div>
+
+      <!-- Partition rows -->
+      <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;">
+
+        <!-- Partition 0 -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--teal, #1a8c6e); width: 68px; flex-shrink: 0;">Partition 0</div>
+          <div style="display: flex; gap: 2px; flex: 1;">
+            <div style="background: var(--teal-light, #e6f5f0); border: 1px solid var(--teal-mid, #5abfa0); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--teal, #1a8c6e);">msg<br><strong>off=0</strong></div>
+            <div style="background: var(--teal-light, #e6f5f0); border: 1px solid var(--teal-mid, #5abfa0); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--teal, #1a8c6e);">msg<br><strong>off=1</strong></div>
+            <div style="background: var(--teal-light, #e6f5f0); border: 1px solid var(--teal-mid, #5abfa0); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--teal, #1a8c6e);">msg<br><strong>off=2</strong></div>
+            <div style="background: var(--teal-light, #e6f5f0); border: 1px solid var(--teal-mid, #5abfa0); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--teal, #1a8c6e);">msg<br><strong>off=3</strong></div>
+            <div style="background: var(--teal-light, #e6f5f0); border: 1px solid var(--teal-mid, #5abfa0); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--teal, #1a8c6e);">msg<br><strong>off=4</strong></div>
+            <div style="background: var(--teal-light, #e6f5f0); border: 1px solid var(--teal-mid, #5abfa0); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: #aaa;">&#x2026;<br>&nbsp;</div>
+          </div>
+          <div style="font-size: 7pt; color: #888; width: 54px; flex-shrink: 0; text-align: right;">&#x2191; append-only</div>
+        </div>
+
+        <!-- Partition 1 -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--blue, #3a6bbf); width: 68px; flex-shrink: 0;">Partition 1</div>
+          <div style="display: flex; gap: 2px; flex: 1;">
+            <div style="background: var(--blue-light, #e8eef9); border: 1px solid var(--blue, #3a6bbf); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--blue, #3a6bbf);">msg<br><strong>off=0</strong></div>
+            <div style="background: var(--blue-light, #e8eef9); border: 1px solid var(--blue, #3a6bbf); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--blue, #3a6bbf);">msg<br><strong>off=1</strong></div>
+            <div style="background: var(--blue-light, #e8eef9); border: 1px solid var(--blue, #3a6bbf); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--blue, #3a6bbf);">msg<br><strong>off=2</strong></div>
+            <div style="background: var(--blue-light, #e8eef9); border: 1px solid var(--blue, #3a6bbf); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--blue, #3a6bbf);">msg<br><strong>off=3</strong></div>
+            <div style="background: var(--blue-light, #e8eef9); border: 1px solid var(--blue, #3a6bbf); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--blue, #3a6bbf);">msg<br><strong>off=4</strong></div>
+            <div style="background: var(--blue-light, #e8eef9); border: 1px solid var(--blue, #3a6bbf); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: #aaa;">&#x2026;<br>&nbsp;</div>
+          </div>
+          <div style="font-size: 7pt; color: #888; width: 54px; flex-shrink: 0;"></div>
+        </div>
+
+        <!-- Partition 2 -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="font-size: 7.5pt; font-weight: 600; color: var(--orange, #c87020); width: 68px; flex-shrink: 0;">Partition 2</div>
+          <div style="display: flex; gap: 2px; flex: 1;">
+            <div style="background: var(--orange-light, #fdf0e0); border: 1px solid var(--orange, #c87020); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--orange, #c87020);">msg<br><strong>off=0</strong></div>
+            <div style="background: var(--orange-light, #fdf0e0); border: 1px solid var(--orange, #c87020); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--orange, #c87020);">msg<br><strong>off=1</strong></div>
+            <div style="background: var(--orange-light, #fdf0e0); border: 1px solid var(--orange, #c87020); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--orange, #c87020);">msg<br><strong>off=2</strong></div>
+            <div style="background: var(--orange-light, #fdf0e0); border: 1px solid var(--orange, #c87020); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--orange, #c87020);">msg<br><strong>off=3</strong></div>
+            <div style="background: var(--orange-light, #fdf0e0); border: 1px solid var(--orange, #c87020); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: var(--orange, #c87020);">msg<br><strong>off=4</strong></div>
+            <div style="background: var(--orange-light, #fdf0e0); border: 1px solid var(--orange, #c87020); border-radius: 3px; padding: 3px 0; text-align: center; flex: 1; font-size: 7pt; color: #aaa;">&#x2026;<br>&nbsp;</div>
+          </div>
+          <div style="font-size: 7pt; color: #888; width: 54px; flex-shrink: 0;"></div>
+        </div>
+
+      </div>
+
+      <!-- Partitioning note -->
+      <div style="text-align: center; font-size: 7.5pt; color: #666; margin-bottom: 10px;">
+        Messages are routed to a partition by <strong>hash(key) mod num_partitions</strong> &mdash; messages with the same key always land in the same partition (ordering guarantee)
+      </div>
+
+      <!-- Down arrows to consumers -->
+      <div style="display: flex; justify-content: center; gap: 60px; margin-bottom: 2px; color: #888; font-size: 10pt;">&#x2193; &nbsp;&#x2193; &nbsp;&#x2193;</div>
+
+      <!-- Consumer row with offsets -->
+      <div style="display: flex; justify-content: center; gap: 12px; margin-bottom: 4px;">
+        <div style="background: #f0f4ff; border: 1.5px solid #4a7ad4; border-radius: 6px; padding: 5px 12px; text-align: center;">
+          <div style="font-size: 8pt; font-weight: 600; color: #4a7ad4;">Flink Task 0</div>
+          <div style="font-size: 7pt; color: #555; margin-top: 2px;">reads P0 @ <strong>offset 3</strong></div>
+        </div>
+        <div style="background: #f0f4ff; border: 1.5px solid #4a7ad4; border-radius: 6px; padding: 5px 12px; text-align: center;">
+          <div style="font-size: 8pt; font-weight: 600; color: #4a7ad4;">Flink Task 1</div>
+          <div style="font-size: 7pt; color: #555; margin-top: 2px;">reads P1 @ <strong>offset 2</strong></div>
+        </div>
+        <div style="background: #f0f4ff; border: 1.5px solid #4a7ad4; border-radius: 6px; padding: 5px 12px; text-align: center;">
+          <div style="font-size: 8pt; font-weight: 600; color: #4a7ad4;">Flink Task 2</div>
+          <div style="font-size: 7pt; color: #555; margin-top: 2px;">reads P2 @ <strong>offset 4</strong></div>
+        </div>
+      </div>
+
+      <!-- Offset checkpoint note -->
+      <div style="margin-top: 10px; background: #fffbea; border: 1px solid #e8c840; border-radius: 5px; padding: 6px 12px; font-size: 7.5pt; color: #7a6000; text-align: center;">
+        <strong>Exactly-once:</strong> Flink checkpoints store each consumer's <em>current offset per partition</em>. On recovery, tasks replay from the checkpointed offset &mdash; no duplicate processing, no data loss.
+      </div>
+
+    </div>
+
+    <div class="divider"></div>
+    <p><strong>System Architecture:</strong> Flink runs as a distributed system with two main components:</p>
+    <div style="margin: 10px 0;">
+      <svg viewBox="0 0 760 550" xmlns="http://www.w3.org/2000/svg" style="font-family: 'DM Sans', sans-serif; display: block; width: 100%; height: auto;">
+
+        <!-- Background -->
+        <rect width="760" height="550" fill="#FAFAF8" rx="8" stroke="#D3D1C7" stroke-width="1"/>
+
+        <!-- Title -->
+        <text x="380" y="22" text-anchor="middle" font-size="10.5" font-weight="600" fill="#1a1a1a">Flink Job Submission — System Architecture</text>
+
+        <!-- Component Boxes -->
+        <rect x="16"  y="32" width="92"  height="26" rx="4" fill="#0C447C"/>
+        <text x="62"  y="50" text-anchor="middle" font-size="8.5" font-weight="600" fill="white">App</text>
+
+        <rect x="152" y="32" width="96"  height="26" rx="4" fill="#3C3489"/>
+        <text x="200" y="50" text-anchor="middle" font-size="8.5" font-weight="600" fill="white">Dispatcher</text>
+
+        <rect x="292" y="32" width="100" height="26" rx="4" fill="#854F0B"/>
+        <text x="342" y="50" text-anchor="middle" font-size="8.5" font-weight="600" fill="white">JobManager</text>
+
+        <rect x="440" y="32" width="124" height="26" rx="4" fill="#712B13"/>
+        <text x="502" y="50" text-anchor="middle" font-size="8.5" font-weight="600" fill="white">ResourceManager</text>
+
+        <rect x="604" y="32" width="132" height="26" rx="4" fill="#0F6E56"/>
+        <text x="670" y="50" text-anchor="middle" font-size="8.5" font-weight="600" fill="white">TaskManager(s)</text>
+
+        <!-- Lifelines -->
+        <line x1="62"  y1="58" x2="62"  y2="540" stroke="#0C447C" stroke-width="1" stroke-dasharray="5,4" opacity="0.35"/>
+        <line x1="200" y1="58" x2="200" y2="540" stroke="#3C3489" stroke-width="1" stroke-dasharray="5,4" opacity="0.35"/>
+        <line x1="342" y1="58" x2="342" y2="540" stroke="#854F0B" stroke-width="1" stroke-dasharray="5,4" opacity="0.35"/>
+        <line x1="502" y1="58" x2="502" y2="540" stroke="#712B13" stroke-width="1" stroke-dasharray="5,4" opacity="0.35"/>
+        <line x1="670" y1="58" x2="670" y2="540" stroke="#0F6E56" stroke-width="1" stroke-dasharray="5,4" opacity="0.35"/>
+
+        <!-- STEP 1: App → Dispatcher -->
+        <text x="131" y="92" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">submit application</text>
+        <line x1="110" y1="100" x2="144" y2="100" stroke="#333" stroke-width="1.5"/>
+        <polygon points="144,96 152,100 144,104" fill="#333"/>
+        <circle cx="131" cy="100" r="9" fill="#1a1a1a"/>
+        <text x="131" y="103.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">1</text>
+
+        <!-- STEP 2: Dispatcher → JobManager -->
+        <text x="271" y="142" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">start &amp; submit application</text>
+        <line x1="250" y1="150" x2="284" y2="150" stroke="#333" stroke-width="1.5"/>
+        <polygon points="284,146 292,150 284,154" fill="#333"/>
+        <circle cx="271" cy="150" r="9" fill="#1a1a1a"/>
+        <text x="271" y="153.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">2</text>
+
+        <!-- STEP 3: JobManager → ResourceManager -->
+        <text x="422" y="192" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">request slots</text>
+        <line x1="394" y1="200" x2="432" y2="200" stroke="#333" stroke-width="1.5"/>
+        <polygon points="432,196 440,200 432,204" fill="#333"/>
+        <circle cx="422" cy="200" r="9" fill="#1a1a1a"/>
+        <text x="422" y="203.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">3</text>
+
+        <!-- STEP 4: ResourceManager → TaskManager -->
+        <text x="586" y="246" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">start TaskManager</text>
+        <line x1="566" y1="254" x2="596" y2="254" stroke="#333" stroke-width="1.5"/>
+        <polygon points="596,250 604,254 596,258" fill="#333"/>
+        <circle cx="586" cy="254" r="9" fill="#1a1a1a"/>
+        <text x="586" y="257.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">4</text>
+
+        <!-- STEP 5: TaskManager → ResourceManager (left) -->
+        <text x="586" y="296" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">register slots</text>
+        <line x1="602" y1="304" x2="572" y2="304" stroke="#333" stroke-width="1.5"/>
+        <polygon points="572,300 564,304 572,308" fill="#333"/>
+        <circle cx="586" cy="304" r="9" fill="#1a1a1a"/>
+        <text x="586" y="307.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">5</text>
+
+        <!-- STEP 6: ResourceManager → TaskManager -->
+        <text x="586" y="349" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">instruct slot offer</text>
+        <line x1="566" y1="357" x2="596" y2="357" stroke="#333" stroke-width="1.5"/>
+        <polygon points="596,353 604,357 596,361" fill="#333"/>
+        <circle cx="586" cy="357" r="9" fill="#1a1a1a"/>
+        <text x="586" y="360.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">6</text>
+
+        <!-- STEP 7: TaskManager → JobManager (long, left, crosses RM lifeline) -->
+        <line x1="602" y1="416" x2="400" y2="416" stroke="#333" stroke-width="1.5"/>
+        <polygon points="400,412 392,416 400,420" fill="#333"/>
+        <rect x="456" y="403" width="78" height="13" fill="#FAFAF8" rx="2" opacity="0.92"/>
+        <text x="495" y="413" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">offer slots</text>
+        <circle cx="495" cy="416" r="9" fill="#1a1a1a"/>
+        <text x="495" y="419.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">7</text>
+
+        <!-- STEP 8: JobManager → TaskManager (long, right, crosses RM lifeline) -->
+        <line x1="394" y1="466" x2="596" y2="466" stroke="#333" stroke-width="1.5"/>
+        <polygon points="596,462 604,466 596,470" fill="#333"/>
+        <rect x="418" y="453" width="168" height="13" fill="#FAFAF8" rx="2" opacity="0.92"/>
+        <text x="502" y="463" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">submit tasks for execution in slots</text>
+        <circle cx="502" cy="466" r="9" fill="#1a1a1a"/>
+        <text x="502" y="469.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">8</text>
+
+        <!-- STEP 9: TaskManager self-loop (exchange data) -->
+        <path d="M670,500 Q728,500 728,516 Q728,532 670,532" stroke="#333" stroke-width="1.5" fill="none"/>
+        <polygon points="678,528 670,532 678,536" fill="#333"/>
+        <text x="700" y="492" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-style="italic">exchange data</text>
+        <circle cx="700" cy="516" r="9" fill="#1a1a1a"/>
+        <text x="700" y="519.5" text-anchor="middle" font-size="7" font-weight="600" fill="white">9</text>
+
+      </svg>
+    </div>
+
+    <div class="grid1">
+      <div class="card">
+        <div class="card-title">TaskManager</div>
+        <div class="card-body">Worker nodes. Each TaskManager has a fixed number of <strong>processing slots</strong> to control the number of tasks it is able to concurrently execute. Each slot can run one parallel task of each operator of the application. A TaskManager can run tasks of the same operator (data parallelism), different operators (task parallelism), or from a different application (job parallelism).</div>
+      </div>
+    </div>
+    <div class="il"><strong>Data Transfer:</strong> Tasks of a running application are continuously exchanging data. TaskManagers collect outgoing data from sending tasks into <strong>buffers</strong> before shipping them to receiving tasks over the network. This batching improves throughput without adding significant latency.</div>
+  </div>
+
+  <!-- Section 9: Flink Event-Time Processing & Watermarks -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">9</span> Flink &mdash; Event-Time Processing &amp; Watermarks</div>
+    <p>Like Spark, Flink supports both processing time and event time. For event-time processing, every record must carry an <strong>event timestamp</strong>. But Flink's implementation of watermarks is fundamentally different from Spark's.</p>
+    <div class="hl"><strong>Key difference:</strong> In Spark, a watermark is a user-specified configuration (a delay tolerance on a column). In Flink, a <strong>watermark is an actual special record</strong> — it flows <em>inline within the data stream</em> alongside regular event records, carrying a timestamp value of type <code>Long</code>.</div>
+
+    <p>A Watermark with timestamp T tells downstream operators: <em>"I am reasonably sure no more events with timestamp &le; T will arrive."</em> When a window operator receives a watermark of time T, it <strong>triggers the computation</strong> of all windows whose end time is &le; T.</p>
+
+    <div class="divider"></div>
+    <p><strong>Watermark Strategies in Flink:</strong></p>
+    <table class="cmp">
+      <tr><th>Strategy</th><th>When to Use</th><th>How it Works</th></tr>
+      <tr>
+        <td><strong>Monotonous Timestamps</strong></td>
+        <td>Data arrives in perfect order (rare in practice)</td>
+        <td>Watermark = Maximum event timestamp seen so far. Assumes no out-of-order events.</td>
+      </tr>
+      <tr>
+        <td><strong>Bounded Out-of-Orderness</strong></td>
+        <td>Real-world streams with known maximum delay L</td>
+        <td>Watermark = Max timestamp observed &minus; L. Waits up to L seconds for late events before closing windows.</td>
+      </tr>
+      <tr>
+        <td><strong>Custom Strategy</strong></td>
+        <td>Complex or irregular data patterns</td>
+        <td>You implement your own logic for when and how the watermark advances. Full flexibility.</td>
+      </tr>
+    </table>
+
+    <div class="divider"></div>
+    <p><strong>Handling Late Events in Flink:</strong> Even with a delay buffer L, some events arrive even later. Flink offers three strategies:</p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Default: Discard</div>
+        <div class="card-body">Once the watermark passes the window's end time, any event arriving after that is simply <strong>dropped</strong>. Simple and memory-efficient, but may miss some data.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Allowed Lateness</div>
+        <div class="card-body">Keep the window state alive for an extra duration beyond the watermark. If a late event arrives within this extra window, the window is <strong>re-fired</strong> to update and emit a corrected result.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Side Outputs</div>
+        <div class="card-body">Very late events are diverted to a <strong>separate side stream</strong> for manual inspection, logging, or separate processing logic. The "safety net" — nothing is lost.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 10: State Management & Checkpointing -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">10</span> Flink &mdash; State Management &amp; Checkpointing</div>
+    <p>Every stateful operator instance in Flink maintains <strong>local state in memory</strong> — this enables fast reads and writes for each incoming record. But TaskManager memory is volatile — if a process crashes, all in-memory state is lost. Flink solves this with <strong>checkpointing</strong>.</p>
+
+    <div class="hl"><strong>Checkpoint:</strong> A consistent, distributed snapshot of all operator states written to remote persistent storage (e.g. HDFS, S3). Checkpoints are triggered <em>automatically</em> and are used for <strong>failure recovery</strong>. If a task fails, Flink restarts the application from the latest checkpoint.</div>
+
+    <div class="divider"></div>
+    <p><strong>Flink's Checkpointing Algorithm</strong> is based on the <strong>Chandy&ndash;Lamport distributed snapshot algorithm</strong>. Its key property: it does <em>not</em> pause the whole application. Instead it uses a clever mechanism called <strong>checkpoint barriers</strong>:</p>
+    <div class="step-item"><span class="step-num">1</span><div>The <strong>JobManager</strong> initiates a checkpoint by sending a message to all source operators.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div><strong>Source operators</strong> checkpoint their own state (i.e. the last thing they processed) and inject a special <strong>checkpoint barrier</strong> record into each of their output streams. The barrier carries a checkpoint ID.</div></div>
+    <div class="code-block">source 1 & 2 have streams to 2 tasks (sum_even and sum_odd) each.<br>both sources inject 2 barriers each = 4 barriers total.<br>last number before checkpoint: source 1 - 3, source 2 - 7. these are checkpointed.</div>
+    <div class="step-item"><span class="step-num">3</span><div>Downstream tasks wait to receive a barrier on <em>each</em> input partition. Records arriving <em>after</em> the barrier on one partition but <em>before</em> the barrier on another are <strong>buffered</strong>; all other records continue to be processed normally.</div></div>
+    <div class="code-block">sum_even receives barrier from source 1 but not from source 2 yet.<br>sum_even will buffer records coming from source 1 until barrier from source 2 arrives.</div>
+    <div class="step-item"><span class="step-num">4</span><div>Once a task receives barriers from <em>all</em> input partitions, it <strong>checkpoints its own state</strong> to remote storage, then forwards the checkpoint barrier downstream.</div></div>
+    <div class="code-block">current state in sum_even: 8<br>source 2 gives 2, then the barrier<br>updated state = 8 + 2 = 10 <- this is checkpointed.</div>
+    <div class="step-item"><span class="step-num">5</span><div>Tasks <strong>resume normal processing</strong> immediately after forwarding the barrier — they do not wait for the checkpoint to complete.</div></div>
+    <div class="step-item"><span class="step-num">6</span><div>When all operators (including sinks) acknowledge receipt of the checkpoint barrier to the JobManager, the <strong>checkpoint is complete</strong>.</div></div>
+
+    <div class="il"><strong>Why this is efficient:</strong> The Chandy-Lamport approach is <strong>asynchronous</strong> — some tasks are checkpointing while others continue processing data. There is no global pause (stop-the-world). This is why Flink can achieve millisecond latencies even with checkpointing enabled. Contrast with Spark: each micro-batch is implicitly checkpointed <em>synchronously</em> at the end of every batch.</div>
+
+    <div class="divider"></div>
+    <p><strong>Failure Recovery from a Checkpoint:</strong></p>
+    <div class="phase-row">
+      <div class="phase-box ph-coral">
+        <div class="phase-title">1. Restart</div>
+        <div class="phase-desc">Restart the entire application (all operators).</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">2. Reset State</div>
+        <div class="phase-desc">Reload all stateful operators' state from the latest checkpoint.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-teal">
+        <div class="phase-title">3. Resume</div>
+        <div class="phase-desc">Resume processing from the positions in the sources recorded in the checkpoint.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 11: Savepoints -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">11</span> Flink &mdash; Savepoints</div>
+    <p>A <strong>Savepoint</strong> is similar to a checkpoint in that it captures the full state of a running Flink job — but it is <strong>manually triggered by the operator</strong> (not automatic), and is designed for <strong>operational use cases</strong> rather than failure recovery.</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Checkpoint</div>
+        <div class="card-body">Automatic, periodic. Used for failure recovery. May be overwritten by newer checkpoints. Tightly coupled to a specific job instance.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Savepoint</div>
+        <div class="card-body">Manual, on-demand. Designed for planned operations. <strong>Portable</strong> — works across Flink versions and cluster configurations. Contains operator state + source offsets.</div>
+      </div>
+    </div>
+    <p><strong>Use cases for Savepoints:</strong></p>
+    <div class="step-item"><span class="step-num">1</span><div><strong>Application Upgrades:</strong> Take a savepoint &rarr; stop the job &rarr; deploy new code JAR &rarr; resume from the savepoint. Zero state loss.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div><strong>Scaling:</strong> Changing parallelism (e.g. 10 workers &rarr; 50 workers) requires a restart from a savepoint so Flink can redistribute state partitions across the new worker count.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div><strong>Cluster Migration:</strong> Move a running job from on-premise to the cloud — just point the new cluster at the savepoint file path.</div></div>
+    <div class="step-item"><span class="step-num">4</span><div><strong>A/B Testing:</strong> Fork two different versions of the application from the exact same savepoint to compare performance on identical starting state.</div></div>
+  </div>
+
+  <!-- Section 12: Spark vs. Flink Comparison -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">12</span> Spark vs. Flink &mdash; Comparison</div>
+    <table class="cmp">
+      <tr>
+        <th>Dimension</th>
+        <th>Spark Structured Streaming</th>
+        <th>Apache Flink</th>
+      </tr>
+      <tr>
+        <td><strong>Processing Model</strong></td>
+        <td>Micro-batch: collects events into small batches, processes each as a Spark job</td>
+        <td>True continuous streaming: processes each event individually as it arrives</td>
+      </tr>
+      <tr>
+        <td><strong>Latency</strong></td>
+        <td>Seconds (configurable micro-batch interval)</td>
+        <td>Milliseconds (sub-second)</td>
+      </tr>
+      <tr>
+        <td><strong>Checkpointing</strong></td>
+        <td>Synchronous — occurs at the end of every micro-batch. Simple but adds overhead per batch.</td>
+        <td>Asynchronous — Chandy-Lamport algorithm with checkpoint barriers. More efficient; does not pause processing.</td>
+      </tr>
+      <tr>
+        <td><strong>Watermark Type</strong></td>
+        <td>A <em>configuration</em>: user specifies a delay tolerance on an event-time column (<code>withWatermark</code>)</td>
+        <td>A <em>special record</em> that flows inline in the data stream, carrying a <code>Long</code> timestamp</td>
+      </tr>
+      <tr>
+        <td><strong>Late Data Handling</strong></td>
+        <td>Events past the watermark threshold are dropped</td>
+        <td>Three options: Discard, Allowed Lateness (re-fire window), Side Outputs</td>
+      </tr>
+      <tr>
+        <td><strong>Programming Model</strong></td>
+        <td>DataFrame/SQL API — same as batch. Easy to learn for Spark users.</td>
+        <td>DataStream API (low-level) or Table/SQL API. More control but steeper learning curve.</td>
+      </tr>
+      <tr>
+        <td><strong>Exactly-Once</strong></td>
+        <td>Supported via deterministic micro-batch re-execution</td>
+        <td>Supported via distributed checkpoints + transactional sinks</td>
+      </tr>
+      <tr>
+        <td><strong>Savepoints</strong></td>
+        <td>Not a native concept (checkpoints are per-query)</td>
+        <td>First-class feature for upgrades, scaling, and migration</td>
+      </tr>
+      <tr>
+        <td><strong>Native Model</strong></td>
+        <td>Batch-first; streaming added on top via micro-batching</td>
+        <td>Stream-first; batch is treated as a finite stream</td>
+      </tr>
+      <tr>
+        <td><strong>Best For</strong></td>
+        <td>Applications tolerating few-second latency; teams already using Spark; unified batch+stream pipelines</td>
+        <td>True real-time applications (fraud detection, trading); complex event processing; stateful streaming at scale</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Section 13: Exam-style Q&A -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">13</span> Exam-Style Q&amp;A</div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is the difference between processing time and event time? Why does event time produce deterministic results?</div>
+      <div class="qa-a">Processing time is the wall-clock time when an event is processed by the cluster. Event time is the timestamp embedded in the event itself (when it actually occurred). Event time is deterministic because the same event will always fall into the same window regardless of how fast or slow processing is, or how delayed delivery was. Processing time results can change if you replay data at a different speed.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is a watermark and what two problems does it solve in Spark Structured Streaming?</div>
+      <div class="qa-a">A watermark is a threshold defined as a maximum tolerated delay on an event-time column (e.g., <code>withWatermark("eventTime", "10 minutes")</code>). It solves two problems: (1) it defines when late-arriving events are accepted vs. dropped — events more than 10 minutes late are discarded; (2) it allows Spark to clean up (garbage collect) old window state from executor memory, preventing unbounded memory growth in stateful aggregations.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: How does Flink's checkpointing algorithm avoid pausing the whole application?</div>
+      <div class="qa-a">Flink uses the Chandy-Lamport algorithm with <em>checkpoint barriers</em>. The JobManager triggers a checkpoint by injecting a barrier record into source streams. As the barrier flows downstream, each operator checkpoints its state upon receiving barriers from all inputs, then forwards the barrier. Crucially, tasks that have already forwarded the barrier continue processing new data while others are still checkpointing. This async, decoupled approach means no global pause — some tasks are always processing.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What are the three output modes in Spark Structured Streaming? When can Append mode NOT be used?</div>
+      <div class="qa-a">Append: write only new rows added since last trigger. Update: write only changed rows. Complete: rewrite entire result table. Append mode cannot be used when existing rows can change — for example, <code>groupBy().count()</code> can retroactively update counts as new events arrive in a window, violating the append-only constraint. Use Update or Complete for such aggregations.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is a Flink Savepoint, and how does it differ from a Checkpoint?</div>
+      <div class="qa-a">A Checkpoint is automatic and used for failure recovery — it may be overwritten. A Savepoint is manually triggered by the operator and designed for planned operations (upgrades, scaling, migration, A/B testing). Savepoints are portable across Flink versions and cluster configurations, while checkpoints are tightly coupled to a specific job instance. Both capture the full operator state and source offsets.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What are the three ways Flink can handle events that arrive after the watermark has passed?</div>
+      <div class="qa-a">(1) <strong>Default (Discard):</strong> late events are simply dropped once the watermark passes the window end time. (2) <strong>Allowed Lateness:</strong> keep the window state alive for an extra duration; if a late event arrives within this window it re-fires the window with updated results. (3) <strong>Side Outputs:</strong> divert very late events to a separate side stream for manual inspection or separate processing — nothing is lost.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Explain the key architectural difference between Spark Structured Streaming and Apache Flink regarding how they achieve exactly-once guarantees.</div>
+      <div class="qa-a">Spark achieves exactly-once via deterministic micro-batch re-execution — if a batch fails, it is simply re-run from the same source offsets. Flink achieves exactly-once via distributed asynchronous checkpointing (Chandy-Lamport) combined with transactional sink connectors — when a checkpoint completes, Flink can guarantee that all records included in that checkpoint are committed exactly once to the output. Spark's approach is simpler but adds per-batch latency; Flink's is more complex but allows millisecond-latency exactly-once.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

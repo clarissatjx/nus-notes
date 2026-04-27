@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 6 — NoSQL &amp; Distributed Databases | CS4225/CS5425</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal:        #0F6E56;
+    --teal-light:  #E1F5EE;
+    --teal-mid:    #1D9E75;
+    --purple:      #3C3489;
+    --purple-light:#EEEDFE;
+    --amber:       #854F0B;
+    --amber-light: #FAEEDA;
+    --blue:        #0C447C;
+    --blue-light:  #E6F1FB;
+    --coral:       #712B13;
+    --coral-light: #FAECE7;
+    --red-light:   #FCEBEB;
+    --red:         #791F1F;
+    --green-light: #EAF3DE;
+    --green:       #27500A;
+    --gray:        #444441;
+    --gray-light:  #F1EFE8;
+    --border:      #D3D1C7;
+    --text:        #1a1a1a;
+    --text-muted:  #5F5E5A;
+    --font-body:   'DM Sans', sans-serif;
+    --font-mono:   'JetBrains Mono', monospace;
+  }
+
+  html, body {
+    background: #ffffff;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 11pt;
+    line-height: 1.65;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 18mm 16mm 18mm 16mm;
+  }
+
+  /* ── Header ── */
+  .lecture-header {
+    border-bottom: 2.5px solid var(--teal-mid);
+    padding-bottom: 10px;
+    margin-bottom: 22px;
+  }
+  .lecture-title {
+    font-size: 20pt;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .lecture-sub {
+    font-size: 9pt;
+    color: var(--text-muted);
+    margin-top: 3px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Section headings ── */
+  .section { margin-bottom: 20px; }
+  .section-title {
+    font-size: 12pt;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+    padding-bottom: 4px;
+    border-bottom: 0.75px solid var(--border);
+  }
+  .badge {
+    font-size: 8pt;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+  }
+  .bt { background: var(--teal-light);   color: var(--teal); }
+  .bp { background: var(--purple-light); color: var(--purple); }
+  .ba { background: var(--amber-light);  color: var(--amber); }
+  .bb { background: var(--blue-light);   color: var(--blue); }
+  .bc { background: var(--coral-light);  color: var(--coral); }
+
+  /* ── Prose ── */
+  p { font-size: 10.5pt; color: var(--text); line-height: 1.65; margin-bottom: 7px; }
+  code {
+    font-family: var(--font-mono);
+    font-size: 9pt;
+    background: var(--gray-light);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* ── Grid layouts ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+
+  /* ── Cards ── */
+  .card {
+    border: 0.75px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 11px;
+    background: #fff;
+  }
+  .card-title { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .card-body  { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; }
+
+  /* ── Phase boxes ── */
+  .phase-row { display: flex; align-items: stretch; gap: 0; margin-bottom: 10px; }
+  .phase-box { flex: 1; border-radius: 7px; padding: 10px 10px; text-align: center; }
+  .phase-arrow { display: flex; align-items: center; padding: 0 5px; color: var(--text-muted); font-size: 14pt; }
+  .phase-title { font-size: 10.5pt; font-weight: 600; margin-bottom: 3px; }
+  .phase-desc  { font-size: 8.5pt; line-height: 1.4; }
+  .ph-teal   { background: var(--teal-light);   }
+  .ph-teal .phase-title { color: var(--teal); }
+  .ph-teal .phase-desc  { color: #0F6E56; }
+  .ph-purple { background: var(--purple-light); }
+  .ph-purple .phase-title { color: var(--purple); }
+  .ph-purple .phase-desc  { color: #534AB7; }
+  .ph-amber  { background: var(--amber-light);  }
+  .ph-amber .phase-title  { color: var(--amber); }
+  .ph-amber .phase-desc   { color: #854F0B; }
+  .ph-blue  { background: var(--blue-light); }
+  .ph-blue .phase-title { color: var(--blue); }
+  .ph-blue .phase-desc  { color: #0C447C; }
+  .ph-coral  { background: var(--coral-light); }
+  .ph-coral .phase-title { color: var(--coral); }
+  .ph-coral .phase-desc  { color: #712B13; }
+
+  /* ── Highlight boxes ── */
+  .hl { border-left: 3px solid var(--teal-mid); background: var(--teal-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: #085041; line-height: 1.55; }
+  .wl { border-left: 3px solid #EF9F27;         background: var(--amber-light); border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--amber); line-height: 1.55; }
+  .il { border-left: 3px solid #378ADD;         background: var(--blue-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--blue); line-height: 1.55; }
+  .rl { border-left: 3px solid #C74848;         background: var(--red-light);   border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--red); line-height: 1.55; }
+
+  /* ── Code blocks ── */
+  .code-block {
+    background: var(--gray-light);
+    border: 0.75px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-family: var(--font-mono);
+    font-size: 8.5pt;
+    line-height: 1.6;
+    white-space: pre;
+    margin-bottom: 9px;
+    color: var(--text);
+  }
+
+  /* ── Numbered steps ── */
+  .step-item { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 7px; font-size: 9.5pt; color: var(--text); line-height: 1.55; }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; background: #9FE1CB; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Q&A ── */
+  .qa-block { margin-bottom: 9px; }
+  .qa-q { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .qa-a { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; padding-left: 10px; border-left: 2px solid var(--border); }
+
+  /* ── Tags ── */
+  .tag { display: inline-block; font-size: 8pt; font-weight: 600; padding: 1px 7px; border-radius: 3px; margin-right: 3px; }
+  .tg  { background: var(--green-light); color: var(--green); }
+  .tr  { background: var(--red-light);   color: var(--red); }
+  .ta  { background: var(--amber-light); color: var(--amber); }
+  .tb  { background: var(--blue-light);  color: var(--blue); }
+
+  /* ── Comparison table ── */
+  .cmp { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 9px; }
+  .cmp th { background: var(--gray-light); color: var(--text); font-weight: 600; padding: 6px 10px; text-align: left; border: 0.75px solid var(--border); }
+  .cmp td { padding: 5px 10px; border: 0.75px solid var(--border); color: var(--text-muted); vertical-align: top; line-height: 1.5; }
+  .cmp td strong { color: var(--text); }
+
+  /* ── Divider ── */
+  .divider { border-top: 0.75px solid var(--border); margin: 14px 0; }
+
+  /* ── Print media ── */
+  @media print {
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body { background: #fff; }
+    .page { width: 100%; padding: 15mm 14mm; }
+    .section { page-break-inside: avoid; }
+    .card { page-break-inside: avoid; }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="lecture-header">
+    <div class="lecture-title">Lecture 6 &mdash; NoSQL &amp; Distributed Databases</div>
+    <div class="lecture-sub">CS4225 / CS5425 &nbsp;&middot;&nbsp; Big Data Systems for Data Science &nbsp;&middot;&nbsp; National University of Singapore</div>
+  </div>
+
+  <!-- 1. What is NoSQL -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">1</span> What is NoSQL?</div>
+    <p>NoSQL refers to <strong>non-relational databases</strong> — systems that store and retrieve data in formats other than the traditional row-and-column relational tables of SQL databases (RDBMS).</p>
+    <div class="hl">
+      <strong>Etymology:</strong> "NoSQL" originally meant "No SQL" (no relational model). It has evolved to mean <strong>"Not Only SQL"</strong> — a pragmatic approach where relational and non-relational databases are used side-by-side, each for what it does best. Many modern NoSQL systems even support SQL-like query languages.
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Traditional RDBMS (SQL)</div>
+        <div class="card-body">Data in fixed tables with predefined schemas. Strong consistency (ACID). Great for complex queries and joins. Hard to scale horizontally. Examples: PostgreSQL, MySQL, Oracle.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">NoSQL</div>
+        <div class="card-body">Flexible schema, varied data models (key-value, document, column, graph, vector). Designed for horizontal scalability. Relaxed consistency. Examples: MongoDB, Redis, Cassandra.</div>
+      </div>
+    </div>
+    <div class="il"><strong>Analogy:</strong> RDBMS is like a strict filing cabinet — everything must fit into labelled folders. NoSQL is like a flexible storage warehouse — you can store anything, organised however makes sense for your use case.</div>
+  </div>
+
+  <!-- 2. Why NoSQL -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">2</span> Why NoSQL? Motivation</div>
+    <p>The rise of the web and mobile applications created data challenges that traditional RDBMS were not designed to handle:</p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Volume</div>
+        <div class="card-body">Social networks, e-commerce, IoT produce petabytes of data. RDBMS do not scale horizontally — adding machines does not proportionally increase capacity.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Velocity</div>
+        <div class="card-body">High write/read rates (millions of requests per second). Requiring strict locking and ACID guarantees creates bottlenecks at scale.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Variety</div>
+        <div class="card-body">Data is unstructured or semi-structured (JSON, images, graphs, vectors). RDBMS enforce rigid schemas that don't adapt well to changing or irregular data.</div>
+      </div>
+    </div>
+    <p>Key design properties that NoSQL systems adopt to address these challenges:</p>
+    <div class="grid3">
+      <div class="card"><div class="card-title">Horizontal scalability</div><div class="card-body">Replicate and distribute data over many commodity servers (scale out, not up).</div></div>
+      <div class="card"><div class="card-title">Simple call interface</div><div class="card-body">Basic get/put operations (or simple queries) instead of complex SQL with joins.</div></div>
+      <div class="card"><div class="card-title">Weaker consistency</div><div class="card-body">Trade strict ACID for eventual consistency to gain availability and partition tolerance.</div></div>
+    </div>
+    <div class="grid3">
+      <div class="card"><div class="card-title">Distributed indexes &amp; RAM</div><div class="card-body">Efficient use of distributed in-memory indexes for low-latency lookups.</div></div>
+      <div class="card"><div class="card-title">Flexible schemas</div><div class="card-body">Different records in the same "collection" can have different fields — no migration needed for schema changes.</div></div>
+      <div class="card"><div class="card-title">High availability</div><div class="card-body">Replication across nodes ensures reads and writes continue even if some nodes fail.</div></div>
+    </div>
+  </div>
+
+  <!-- 3. Types of NoSQL -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">3</span> Major Types of NoSQL Databases</div>
+    <div class="phase-row">
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Key-Value Stores</div>
+        <div class="phase-desc">Simple lookup by key. Very fast. Like a giant hash map.</div>
+      </div>
+      <div class="phase-box ph-purple">
+        <div class="phase-title">Document Stores</div>
+        <div class="phase-desc">Store JSON-like documents. Queryable by field values.</div>
+      </div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">Wide Column DBs</div>
+        <div class="phase-desc">Rows can have different column sets. Great for sparse data.</div>
+      </div>
+      <div class="phase-box ph-blue">
+        <div class="phase-title">Graph DBs</div>
+        <div class="phase-desc">Nodes and edges. Optimised for relationship queries.</div>
+      </div>
+      <div class="phase-box ph-coral">
+        <div class="phase-title">Vector DBs</div>
+        <div class="phase-desc">Store high-dimensional vectors. Optimised for similarity search.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Key-Value Stores -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">4</span> Key-Value Stores</div>
+    <div class="hl"><strong>Data model:</strong> A giant distributed hash map — each entry is a <strong>(key, value)</strong> pair. Keys are queryable primitives (strings, ints, bytes). Values can be anything — primitive, JSON, binary blob — but <em>cannot be queried by content</em>.</div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Core API — just two operations</div>
+        <div class="card-body">
+          <code>get(key)</code> &rarr; returns the value for that key<br><br>
+          <code>put(key, value)</code> &rarr; stores / overwrites the value<br><br>
+          Optional: <code>multi-get</code>, <code>multi-put</code>, <code>range queries</code>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">When to use</div>
+        <div class="card-body">
+          Small, continuous reads and writes<br>
+          Storing "basic" info (raw bytes, session data, user preferences)<br>
+          When complex queries (joins, filters on value content) are rarely needed<br><br>
+          <span class="tag tr">Not suitable</span> when you need: "find all patients who took treatment X"
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title"><span class="tag tb">Non-persistent</span> In-memory hash table</div>
+        <div class="card-body">All data lives in RAM for ultra-low latency. Data may be lost on restart (or backed up periodically to disk).<br><br>Examples: <strong>Memcached</strong>, <strong>Redis</strong></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span class="tag tg">Persistent</span> Disk-backed store</div>
+        <div class="card-body">Data survives restarts. Typically uses LSM-trees or B-trees on disk.<br><br>Examples: <strong>RocksDB</strong>, <strong>Dynamo</strong> (Amazon), <strong>Riak</strong></div>
+      </div>
+    </div>
+    <div class="il"><strong>Origin:</strong> Key-value stores are based on Amazon's landmark <em>Dynamo</em> paper (2007), which introduced many techniques still used today (consistent hashing, vector clocks, quorum reads/writes).</div>
+  </div>
+
+  <!-- 5. Document Stores -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">5</span> Document Stores</div>
+    <p>Document stores extend key-value stores by giving structure to values — each value is a <strong>document</strong> (a JSON-like object with fields and nested sub-objects). Because documents have structure, the database can <strong>query by field content</strong>, not just by key.</p>
+    <div class="hl">
+      <strong>Data model hierarchy:</strong><br>
+      <strong>Database</strong> &rarr; multiple <strong>Collections</strong> &rarr; each collection has multiple <strong>Documents</strong> &rarr; each document has <strong>Fields &amp; Values</strong><br><br>
+      Key property: <em>different documents in the same collection can have different fields</em> (schema-free / dynamic schema). Values can be nested JSON objects.
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Example document</div>
+        <div class="card-body">
+          <code>{<br>&nbsp;"_id": "u123",<br>&nbsp;"name": "Alice",<br>&nbsp;"email": "alice@example.com",<br>&nbsp;"address": { "city": "Singapore", "zip": "119077" },<br>&nbsp;"tags": ["student", "cs4225"]<br>}</code>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Querying — CRUD operations</div>
+        <div class="card-body">
+          <strong>Create:</strong> insert a new document<br>
+          <strong>Read:</strong> query by field value, e.g. <code>find({'class':'cs4225'})</code><br>
+          <strong>Update:</strong> modify specific fields of matching documents<br>
+          <strong>Delete:</strong> remove documents matching a filter<br><br>
+          This is a major advantage over key-value stores — you can filter by document content.
+        </div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Advantages</div><div class="card-body">Flexible schema handles evolving data. Rich querying on fields. Natural fit for JSON-heavy web apps.</div></div>
+      <div class="card"><div class="card-title">Popular systems</div><div class="card-body"><strong>MongoDB</strong> (most widely used), CouchDB, Firebase Firestore. MongoDB is consistently ranked among the most popular databases globally.</div></div>
+    </div>
+    <div class="wl"><strong>Key distinction:</strong> Key-value stores cannot query <em>inside</em> the value. Document stores can filter, sort, and index on any field <em>within</em> the document.</div>
+  </div>
+
+  <!-- 6. Other Types -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">6</span> Other NoSQL Types: Wide Column, Graph, Vector</div>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Wide Column Databases</div>
+        <div class="card-body">
+          Rows can have different sets of columns — great for sparse data where most cells would be NULL in a traditional table.<br><br>
+          Organised by column families. Highly efficient for "fetch all data for user X" queries.<br><br>
+          Examples: <strong>Apache Cassandra</strong>, <strong>HBase</strong>, <strong>Google Bigtable</strong>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Graph Databases</div>
+        <div class="card-body">
+          Data stored as <strong>nodes</strong> (entities) and <strong>edges</strong> (relationships). Optimised for traversing relationships — "friends of friends", shortest path, community detection.<br><br>
+          Very inefficient in RDBMS (join explosion). Native graph storage makes these queries fast.<br><br>
+          Examples: <strong>Neo4j</strong>, <strong>Amazon Neptune</strong>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Vector Databases</div>
+        <div class="card-body">
+          Store high-dimensional dense vectors (embeddings from AI/ML models). Core operation: <strong>approximate nearest neighbour (ANN) search</strong> — find the most similar vectors to a query.<br><br>
+          Related to LSH / min-hashing from Lecture 5. Critical for AI search and recommendation.<br><br>
+          Examples: <strong>Milvus</strong>, <strong>Weaviate</strong>, <strong>Redis</strong>, <strong>MongoDB Atlas</strong>
+        </div>
+      </div>
+    </div>
+    <div class="il"><strong>Vector DBs and AI:</strong> Large Language Models convert text to vector embeddings. Vector databases enable fast similarity search over billions of these embeddings — powering semantic search, recommendation systems, and RAG (retrieval-augmented generation) in modern AI applications.</div>
+  </div>
+
+  <!-- 6b. Vector Databases Deep Dive -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">6b</span> Vector Databases — Deep Dive</div>
+    <p>A vector database stores data as <strong>lists of numbers</strong> (called <strong>vectors</strong> or <strong>embeddings</strong>), and its superpower is answering one question: <em>"which stored items are most similar to this query?"</em></p>
+
+    <div class="hl">
+      <strong>The core problem it solves:</strong> Traditional databases answer exact questions — <code>WHERE name = 'Alice'</code>. But many modern problems are about <em>meaning and similarity</em>: "find songs that sound like this", "find documents that answer this question", "find images that look like this photo". None of these can be solved with a simple equality check. They need <strong>similarity search</strong>.
+    </div>
+
+    <p><strong>Step 1 — Convert data into vectors (embeddings)</strong></p>
+    <p>An AI model takes raw data (text, images, audio) and converts it into a fixed-length list of numbers that captures <em>meaning</em>. Things with similar meaning get similar vectors:</p>
+    <div class="code-block">"The cat sat on the mat"   →  [0.21, -0.85, 0.44, 0.03, ...]   ← 768 numbers
+"A feline rested on a rug" →  [0.19, -0.82, 0.41, 0.07, ...]   ← very similar!
+"Stock prices rose today"  →  [-0.60, 0.12, -0.33, 0.91, ...]  ← very different</div>
+    <p>The first two sentences have <em>similar</em> vectors because they mean similar things, even though they share almost no words.</p>
+
+    <p><strong>Step 2 — Store vectors in the database</strong></p>
+    <p>Millions of these vectors are indexed. Each one is a point in very high-dimensional space (e.g. 768 dimensions).</p>
+
+    <p><strong>Step 3 — Query: find the nearest neighbours</strong></p>
+    <p>The user's query is also converted to a vector. The database finds stored vectors <strong>closest</strong> to the query vector — these are the most semantically similar results.</p>
+    <div class="code-block">Query: "feline on a rug"  →  query vector: [0.20, -0.83, 0.42, 0.06, ...]
+Closest stored vector:       "A feline rested on a rug"  ✓  (returned as top result)</div>
+
+    <div class="il">
+      <strong>How "closeness" is measured:</strong> Usually <strong>cosine similarity</strong> (the angle between two vectors) or Euclidean distance. Vectors pointing in the same direction = similar meaning.<br><br>
+      <strong>Algorithm used:</strong> Approximate Nearest Neighbour (ANN) search — and specifically <strong>Locality-Sensitive Hashing (LSH)</strong>, which you covered in Lecture 5. Rather than comparing the query to every single stored vector (impossibly slow at scale), LSH groups similar vectors into the same "buckets" so you only compare against a small candidate set. You get a very good answer very fast — not necessarily the mathematically perfect one. That's the "approximate" part.
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Analogy — the smart librarian</div>
+        <div class="card-body">A traditional database finds books <em>by exact title or ISBN</em>. A vector database is like a librarian who has read every book and can say: "You liked this novel — here are 5 others with a very similar tone, theme, and writing style," even if none share a word in the title. The AI model does the "reading"; the vector database does the "recommending" at scale.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Why a full database, not just an algorithm?</div>
+        <div class="card-body">
+          The ANN algorithm alone doesn't give you:<br>
+          &bull; <strong>Scalability</strong> — billions of vectors across many machines<br>
+          &bull; <strong>Real-time updates</strong> — new data without rebuilding the entire index<br>
+          &bull; <strong>Replication</strong> — copies for fault tolerance<br>
+          &bull; <strong>Filtering</strong> — "find similar products that are also in stock under $50"<br><br>
+          A vector database packages all of this together.
+        </div>
+      </div>
+    </div>
+
+    <p><strong>Real-world applications:</strong></p>
+    <table class="cmp">
+      <tr><th>Application</th><th>What is stored as vectors</th><th>The query</th></tr>
+      <tr><td>Semantic search</td><td>Web page / document text embeddings</td><td>Search query → find similar-meaning pages</td></tr>
+      <tr><td>Music recommendation</td><td>Song audio embeddings</td><td>Listening history → find similar-sounding songs</td></tr>
+      <tr><td>LLM memory (RAG)</td><td>Chunks of documents / knowledge base</td><td>User question → find most relevant passages</td></tr>
+      <tr><td>Reverse image search</td><td>Image embeddings from vision model</td><td>Upload photo → find visually similar images</td></tr>
+    </table>
+
+    <div class="wl">
+      <strong>Exam tip:</strong> The lecture explicitly connects vector databases back to <strong>LSH / min-hashing from Lecture 5</strong>. The likely exam angle is: what problem do vector databases solve, how do they relate to LSH, and why are they important for AI applications? You won't need to implement ANN — understand the concept, motivation, and the LSH link.
+    </div>
+  </div>
+
+  <!-- 12. Q&A -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">7</span> Exam-Style Q&amp;A</div>
+    <div class="qa-block">
+      <div class="qa-q">Q1 (from slides): True or false — an advantage of document stores over key-value stores is that it is easier to store unstructured objects.</div>
+      <div class="qa-a"><strong>False.</strong> Key-value stores can also store unstructured values (raw bytes, blobs, JSON). The real advantage of document stores is that they allow <em>querying by the content of the value</em> (e.g. find all documents where class = 'cs4225'). Key-value stores can only look up by key.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q2 (from slides): True or false — an advantage of document stores over key-value stores is that it is easier to query for all documents fitting a condition.</div>
+      <div class="qa-a"><strong>True.</strong> Document stores index document fields and support content-based queries (CRUD with filter conditions). Key-value stores only support exact-key lookup — you cannot ask "give me all values where the embedded 'class' field = 'cs4225'".</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q3 (from slides): True or false — in MongoDB, shards are beneficial to allow for redundancy.</div>
+      <div class="qa-a"><strong>False.</strong> In MongoDB, <em>sharding</em> is for horizontal partitioning — distributing data across nodes to increase capacity. <em>Redundancy</em> (fault tolerance) is provided by <em>replica sets</em> (each shard having multiple identical copies). The two mechanisms serve different purposes.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: What is the difference between the "C" in ACID and "Strong Consistency" in distributed systems?</div>
+      <div class="qa-a">Completely different. ACID Consistency = the database obeys predefined integrity constraints (e.g. balances can't go negative). Strong Consistency (distributed) = all nodes see the same value immediately after a write. These terms come from different communities and have been a persistent source of confusion.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: What is eventual consistency and when is it dangerous?</div>
+      <div class="qa-a">Eventual consistency means that if the system is functioning and enough time passes, all replicas will converge to the last written value. In the short term, stale reads are possible. It is dangerous when correctness matters immediately — e.g. bank balances, inventory counts, medical dosing. It is acceptable for social feeds, analytics, likes, and views.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: What is partition pruning in MongoDB, and when does it NOT apply?</div>
+      <div class="qa-a">Partition pruning = the mongos router consults the config server to determine which shard holds the data, and only queries that shard. This applies when the query filter includes the <em>shard key</em>. If the query filters on a <em>non-shard key</em> field, the router doesn't know which shard has matching data, so it must send the query to all shards (scatter-gather), which is less efficient.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: What is the main risk of denormalization?</div>
+      <div class="qa-a">Update anomalies. If duplicated data changes (e.g. a user renames themselves), every document containing that duplicated value must be updated. This is a write-heavy operation that grows with how many copies exist. Normalisation avoids this — update once, join on read — but joins are expensive at scale.</div>
+    </div>
+  </div>
+
+
+  <!-- Supplementary divider -->
+  <div style="display: flex; align-items: center; gap: 10px; margin: 22px 0 18px 0;">
+    <div style="flex: 1; border-top: 1.5px solid #854F0B;"></div>
+    <div style="background: var(--amber-light); border: 1px solid var(--amber); border-radius: 20px; padding: 3px 14px; font-size: 8.5pt; font-weight: 600; color: var(--amber); white-space: nowrap; letter-spacing: 0.3px;">SUPPLEMENTARY</div>
+    <div style="flex: 1; border-top: 1.5px solid #854F0B;"></div>
+  </div>
+
+  <!-- 7. Consistency Models -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">8</span> Consistency Models: Strong vs Eventual</div>
+    <p>In a distributed system, data is replicated across multiple nodes. When a write happens, those copies need to be updated. The question is: <em>how quickly must all nodes agree?</em></p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Strong Consistency</div>
+        <div class="card-body">
+          Any read <em>immediately after</em> a write returns the new value — on <strong>all</strong> nodes, from <strong>all</strong> observers, at the same time.<br><br>
+          Imagine a weighing scale: if you update your weight to 60kg, every device reading that value <em>immediately</em> shows 60kg — no exceptions.<br><br>
+          <span class="tag tg">Pros</span> Simple to reason about; no stale reads<br>
+          <span class="tag tr">Cons</span> Requires coordination between nodes; higher latency; availability may suffer
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Eventual Consistency</div>
+        <div class="card-body">
+          If the system is functioning and you wait long enough, all nodes will <em>eventually</em> converge to the last written value. In the short term, some nodes may return stale data.<br><br>
+          Same weighing scale: right after the update, some devices may still show 50kg (old value). But eventually, the update propagates and all show 60kg.<br><br>
+          <span class="tag tg">Pros</span> Higher availability; lower latency; survives network partitions<br>
+          <span class="tag tr">Cons</span> Application must handle stale reads; complex edge cases
+        </div>
+      </div>
+    </div>
+    <div class="hl">
+      <strong>When is eventual consistency acceptable?</strong><br>
+      <span class="tag tg">OK</span> Social media feeds, tweet counts, product views, statistical queries — slight staleness doesn't matter<br>
+      <span class="tag tr">NOT OK</span> Bank transfers, inventory (can't oversell), medical records — stale data causes real harm
+    </div>
+    <div class="il"><strong>Tunable consistency:</strong> Many modern NoSQL systems (e.g. Cassandra, MongoDB) allow you to <em>configure</em> the consistency level per-operation — you can choose "read from majority of replicas" (strong) vs "read from any replica" (eventual). This is called <strong>tunable consistency</strong>.</div>
+  </div>
+
+  <!-- 8. ACID vs BASE -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">9</span> ACID vs BASE</div>
+    <p>These are two philosophies for guaranteeing data correctness in database systems:</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">ACID (traditional RDBMS)</div>
+        <div class="card-body">
+          <strong>A</strong>tomicity: a transaction is all-or-nothing<br>
+          <strong>C</strong>onsistency: predefined constraints always hold (e.g. balance &ge; 0)<br>
+          <strong>I</strong>solation: concurrent transactions don't interfere<br>
+          <strong>D</strong>urability: committed data survives crashes<br><br>
+          <em>Note: the "C" in ACID is different from strong/eventual consistency in distributed systems — don't confuse them!</em>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">BASE (many NoSQL systems)</div>
+        <div class="card-body">
+          <strong>B</strong>asically <strong>A</strong>vailable: reading and writing are available most of the time<br>
+          <strong>S</strong>oft State: without strict guarantees, the state may be uncertain at any moment<br>
+          <strong>E</strong>ventually Consistent: the system will converge to consistency given enough time<br><br>
+          BASE trades ACID's strict guarantees for better scalability and availability.
+        </div>
+      </div>
+    </div>
+    <div class="wl"><strong>Exam trap — ACID "C" vs distributed "Consistency":</strong> In ACID, Consistency means the database obeys integrity constraints (like no negative balances). In distributed systems, Strong Consistency means all nodes see the same data simultaneously after a write. These are <strong>completely different concepts</strong> from different communities. The exam will test whether you know this distinction.</div>
+  </div>
+
+  <!-- 9. MongoDB Architecture -->
+  <div class="section">
+    <div class="section-title"><span class="badge bb">10</span> MongoDB Architecture — Sharding &amp; Replication</div>
+    <p>MongoDB is the most popular document store. It scales horizontally through two mechanisms: <strong>sharding</strong> (distributing data) and <strong>replication</strong> (duplicating data for fault tolerance).</p>
+
+    <!-- Architecture Diagram -->
+    <div style="background: var(--gray-light); border: 0.75px solid var(--border); border-radius: 8px; padding: 16px 20px; margin-bottom: 12px; font-family: var(--font-body); font-size: 9pt;">
+
+      <!-- Application -->
+      <div style="display: flex; justify-content: center; margin-bottom: 6px;">
+        <div style="background: var(--purple-light); border: 1px solid var(--purple); border-radius: 6px; padding: 6px 24px; color: var(--purple); font-weight: 600; font-size: 9.5pt;">Application</div>
+      </div>
+
+      <!-- Arrow down -->
+      <div style="display: flex; justify-content: center; margin-bottom: 6px; color: var(--text-muted); font-size: 11pt; line-height: 1;">&#8595; query / results</div>
+
+      <!-- Routers row with Config Server -->
+      <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 6px;">
+        <div style="background: var(--teal-light); border: 1px solid var(--teal); border-radius: 6px; padding: 8px 20px; color: var(--teal); font-weight: 600; font-size: 9.5pt; text-align: center;">
+          Routers<br><span style="font-size: 8pt; font-weight: 400;">(mongos)</span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 9pt; display: flex; flex-direction: column; align-items: center; gap: 2px;">
+          <span style="font-size: 8.5pt;">&#8596; consults</span>
+        </div>
+        <div style="background: var(--amber-light); border: 1px solid var(--amber); border-radius: 6px; padding: 8px 16px; color: var(--amber); font-weight: 600; font-size: 9.5pt; text-align: center;">
+          Config Server<br><span style="font-size: 8pt; font-weight: 400;">shard key metadata</span>
+        </div>
+      </div>
+
+      <!-- Arrow down -->
+      <div style="display: flex; justify-content: center; margin-bottom: 6px; color: var(--text-muted); font-size: 11pt; line-height: 1;">&#8595; routes to relevant shard(s)</div>
+
+      <!-- Shards row -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+
+        <div style="background: #fff; border: 1px solid var(--blue); border-radius: 6px; padding: 8px 10px;">
+          <div style="color: var(--blue); font-weight: 600; font-size: 9.5pt; margin-bottom: 5px; text-align: center;">Shard 1</div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="background: var(--blue-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--blue); text-align: center; font-weight: 600;">&#11088; Primary</div>
+            <div style="background: var(--gray-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--text-muted); text-align: center;">Secondary</div>
+            <div style="background: var(--gray-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--text-muted); text-align: center;">Secondary</div>
+          </div>
+        </div>
+
+        <div style="background: #fff; border: 1px solid var(--blue); border-radius: 6px; padding: 8px 10px;">
+          <div style="color: var(--blue); font-weight: 600; font-size: 9.5pt; margin-bottom: 5px; text-align: center;">Shard 2</div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="background: var(--blue-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--blue); text-align: center; font-weight: 600;">&#11088; Primary</div>
+            <div style="background: var(--gray-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--text-muted); text-align: center;">Secondary</div>
+            <div style="background: var(--gray-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--text-muted); text-align: center;">Secondary</div>
+          </div>
+        </div>
+
+        <div style="background: #fff; border: 1px solid var(--blue); border-radius: 6px; padding: 8px 10px;">
+          <div style="color: var(--blue); font-weight: 600; font-size: 9.5pt; margin-bottom: 5px; text-align: center;">Shard 3</div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="background: var(--blue-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--blue); text-align: center; font-weight: 600;">&#11088; Primary</div>
+            <div style="background: var(--gray-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--text-muted); text-align: center;">Secondary</div>
+            <div style="background: var(--gray-light); border-radius: 4px; padding: 3px 7px; font-size: 8pt; color: var(--text-muted); text-align: center;">Secondary</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Routers (mongos)</div>
+        <div class="card-body">Accept queries from the application. Consult the config server to determine which shard(s) hold the relevant data, then route the query accordingly. Merge results before returning to the application.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Config Server</div>
+        <div class="card-body">Stores <strong>metadata</strong>: which ranges of the shard key map to which shard. The router uses this to decide where to send each query — enabling <strong>partition pruning</strong> (only querying the relevant shard).</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Shards (Replica Sets)</div>
+        <div class="card-body">Each shard is a <strong>replica set</strong>: 1 primary + 2 secondaries holding the same data subset. A shard is responsible for a horizontal partition (range of the shard key) of the database.</div>
+      </div>
+    </div>
+    <p>MongoDB splits data by a <strong>shard key</strong> — a field you choose (e.g. <code>user_id</code>). Every document is assigned to exactly one shard based on its shard key value. The config server tracks which ranges of the shard key live on which shard:</p>
+    <div class="code-block">Shard 1:  user_id  0        –  999,999
+Shard 2:  user_id  1,000,000 – 1,999,999
+Shard 3:  user_id  2,000,000 – 2,999,999</div>
+    <p>When a query includes the shard key (e.g. <code>find({user_id: 500000})</code>), the router knows it only needs to check Shard 1 — this is <strong>partition pruning</strong>. If the query uses a different field, all shards must be checked.</p>
+    <div class="divider"></div>
+    <p><strong>End-to-end query flow</strong> for <code>find({'class':'cs4225'})</code>:</p>
+    <div class="step-item"><span class="step-num">1</span><div>Application sends <code>find({'class':'cs4225'})</code> to a <strong>mongos router</strong>.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div>mongos consults the <strong>config server</strong>. It checks: is <code>class</code> the shard key? No — the shard key is <code>user_id</code>. So the config server cannot narrow it down to one shard.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div>Because <code>class</code> is a <em>non-shard key</em> field, mongos must send the query to <strong>all three shards</strong> (scatter-gather). If instead the query were <code>find({user_id: 500000})</code>, the config server would know only Shard 1 holds that range — <strong>partition pruning</strong> — and only Shard 1 would be queried.</div></div>
+    <div class="step-item"><span class="step-num">4</span><div>Each shard searches its own documents for <code>class = 'cs4225'</code> and returns its matches: e.g. Shard 1 returns <code>{name:'alice', class:'cs4225'}</code>, Shard 2 returns <code>{name:'bob', class:'cs4225'}</code>.</div></div>
+    <div class="step-item"><span class="step-num">5</span><div>mongos <strong>merges</strong> the results from all shards into one list and returns it to the application: <code>[{name:'alice',...}, {name:'bob',...}]</code>.</div></div>
+    <div class="divider"></div>
+    <p><strong>Replication within a shard:</strong></p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Writes</div>
+        <div class="card-body">All writes go to the <strong>Primary</strong>. The primary records operations in an <em>operation log (oplog)</em>. Secondaries replicate the oplog and apply it to their local data copy, then acknowledge completion.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Reads &amp; Consistency</div>
+        <div class="card-body">By default, reads can come from <strong>secondaries</strong> (lower latency, more throughput, but may read stale data = <em>eventual consistency</em>). Configured to read only from <strong>primary</strong> = strong consistency but higher latency.</div>
+      </div>
+    </div>
+    <div class="hl">
+      <strong>Shards vs Replica Sets — don't confuse:</strong><br>
+      <strong>Sharding</strong> = dividing the dataset across multiple shards (horizontal partitioning) → improves <em>capacity and throughput</em><br>
+      <strong>Replication</strong> = each shard is a replica set with multiple identical copies → improves <em>fault tolerance and availability</em>
+    </div>
+  </div>
+
+  <!-- 10. Duplication / Denormalization -->
+  <div class="section">
+    <div class="section-title"><span class="badge bb">11</span> Duplication (Denormalization)</div>
+    <p>In relational databases, data is <strong>normalised</strong> — stored in separate tables and joined at query time. NoSQL systems often instead use <strong>denormalization</strong>: embedding related data directly into the same document, even if it means duplicating it.</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Normalized (RDBMS approach)</div>
+        <div class="card-body">
+          <strong>Users table:</strong> <code>user_id | name</code><br>
+          <strong>Posts table:</strong> <code>post_id | post | user_id</code><br><br>
+          To show posts with usernames, you must JOIN the two tables — expensive at scale.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Denormalized (NoSQL approach)</div>
+        <div class="card-body">
+          <strong>Posts table:</strong> <code>post_id | post | user_id | name</code><br><br>
+          The username is duplicated into every post record. Reading a post gives you everything you need — no join required. Fast, but redundant.
+        </div>
+      </div>
+    </div>
+    <div class="hl">
+      <strong>Why denormalize?</strong> "Storage is cheap — why not duplicate data to improve query efficiency?"<br><br>
+      Tables are designed around the <em>queries we expect</em>. If 99% of reads need post + username together, pre-joining avoids expensive lookups at scale.
+    </div>
+    <div class="wl">
+      <strong>Problem with denormalization:</strong> If a user changes their name, that update must be propagated to <em>every</em> document that contains it. This is called an <strong>update anomaly</strong> and is the main cost of denormalization. You trade write complexity for read speed.
+    </div>
+  </div>
+
+  <!-- 11. NoSQL Pros & Cons -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">12</span> NoSQL vs RDBMS — Trade-offs</div>
+    <table class="cmp">
+      <tr>
+        <th>Dimension</th>
+        <th>NoSQL</th>
+        <th>RDBMS (SQL)</th>
+      </tr>
+      <tr>
+        <td><strong>Schema</strong></td>
+        <td><span class="tag tg">+</span> Flexible / dynamic — different records can have different fields</td>
+        <td>Rigid predefined schema — all rows must conform</td>
+      </tr>
+      <tr>
+        <td><strong>Scalability</strong></td>
+        <td><span class="tag tg">+</span> Horizontal (scale out) — add commodity servers</td>
+        <td>Mostly vertical (scale up) — harder to distribute</td>
+      </tr>
+      <tr>
+        <td><strong>Availability</strong></td>
+        <td><span class="tag tg">+</span> High availability via replication and relaxed consistency</td>
+        <td>Lower availability; strict locking reduces throughput</td>
+      </tr>
+      <tr>
+        <td><strong>Query language</strong></td>
+        <td><span class="tag tr">–</span> No universal declarative query language; joins handled in application code</td>
+        <td>Powerful SQL with joins, aggregations, transactions</td>
+      </tr>
+      <tr>
+        <td><strong>Consistency</strong></td>
+        <td><span class="tag tr">–</span> Weaker guarantees (eventual consistency); stale reads possible</td>
+        <td>Strong ACID guarantees; always consistent</td>
+      </tr>
+      <tr>
+        <td><strong>Best for</strong></td>
+        <td>Web apps, user sessions, social feeds, IoT, ML embeddings, unstructured data</td>
+        <td>Financial transactions, inventory, anything requiring strict correctness</td>
+      </tr>
+    </table>
+    <div class="hl">
+      <strong>The verdict is not binary.</strong> The right choice depends entirely on the application:<br>
+      &bull; Is denormalization acceptable (duplicating data)?<br>
+      &bull; How complex are the queries — simple lookups or multi-table joins?<br>
+      &bull; How critical is consistency — financial transactions or social media likes?<br>
+      &bull; What is the data volume and required throughput?<br><br>
+      Many production systems use <strong>both</strong>: RDBMS for critical transactional data, NoSQL for high-volume/low-latency access patterns.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

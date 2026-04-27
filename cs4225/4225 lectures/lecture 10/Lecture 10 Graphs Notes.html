@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lecture 10 — Graphs & PageRank | CS4225/CS5425</title>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --teal:        #0F6E56;
+  --teal-light:  #E1F5EE;
+  --teal-mid:    #1D9E75;
+  --purple:      #3C3489;
+  --purple-light:#EEEDFE;
+  --amber:       #854F0B;
+  --amber-light: #FAEEDA;
+  --blue:        #0C447C;
+  --blue-light:  #E6F1FB;
+  --coral:       #712B13;
+  --coral-light: #FAECE7;
+  --red-light:   #FCEBEB;
+  --red:         #791F1F;
+  --green-light: #EAF3DE;
+  --green:       #27500A;
+  --gray:        #444441;
+  --gray-light:  #F1EFE8;
+  --border:      #D3D1C7;
+  --text:        #1a1a1a;
+  --text-muted:  #5F5E5A;
+  --font-body:   'DM Sans', sans-serif;
+  --font-mono:   'JetBrains Mono', monospace;
+}
+
+html, body {
+  background: #ffffff;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 11pt;
+  line-height: 1.65;
+}
+
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 18mm 16mm 18mm 16mm;
+}
+
+.lecture-header { border-bottom: 2.5px solid var(--teal-mid); padding-bottom: 10px; margin-bottom: 22px; }
+.lecture-title  { font-size: 20pt; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+.lecture-sub    { font-size: 9pt; color: var(--text-muted); margin-top: 3px; letter-spacing: 0.3px; }
+
+.section       { margin-bottom: 20px; }
+.section-title { font-size: 12pt; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; margin-bottom: 9px; padding-bottom: 4px; border-bottom: 0.75px solid var(--border); }
+
+.badge { font-size: 8pt; font-weight: 600; padding: 2px 9px; border-radius: 20px; letter-spacing: 0.2px; }
+.bt { background: var(--teal-light);   color: var(--teal); }
+.bp { background: var(--purple-light); color: var(--purple); }
+.ba { background: var(--amber-light);  color: var(--amber); }
+.bb { background: var(--blue-light);   color: var(--blue); }
+.bc { background: var(--coral-light);  color: var(--coral); }
+
+p    { font-size: 10.5pt; color: var(--text); line-height: 1.65; margin-bottom: 7px; }
+code { font-family: var(--font-mono); font-size: 9pt; background: var(--gray-light); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr;         gap: 8px; margin-bottom: 9px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr;     gap: 8px; margin-bottom: 9px; }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+
+.card       { border: 0.75px solid var(--border); border-radius: 7px; padding: 9px 11px; background: #fff; }
+.card-title { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+.card-body  { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; }
+
+.phase-row   { display: flex; align-items: stretch; gap: 0; margin-bottom: 10px; }
+.phase-box   { flex: 1; border-radius: 7px; padding: 10px; text-align: center; }
+.phase-arrow { display: flex; align-items: center; padding: 0 5px; color: var(--text-muted); font-size: 14pt; }
+.phase-title { font-size: 10.5pt; font-weight: 600; margin-bottom: 3px; }
+.phase-desc  { font-size: 8.5pt; line-height: 1.4; }
+.ph-teal   { background: var(--teal-light); }   .ph-teal .phase-title   { color: var(--teal); }   .ph-teal .phase-desc   { color: #0F6E56; }
+.ph-purple { background: var(--purple-light); } .ph-purple .phase-title { color: var(--purple); } .ph-purple .phase-desc { color: #534AB7; }
+.ph-amber  { background: var(--amber-light); }  .ph-amber .phase-title  { color: var(--amber); }  .ph-amber .phase-desc  { color: #854F0B; }
+.ph-blue   { background: var(--blue-light); }   .ph-blue .phase-title   { color: var(--blue); }   .ph-blue .phase-desc   { color: #0C447C; }
+.ph-coral  { background: var(--coral-light); }  .ph-coral .phase-title  { color: var(--coral); }  .ph-coral .phase-desc  { color: #712B13; }
+
+.hl { border-left: 3px solid var(--teal-mid); background: var(--teal-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: #085041; line-height: 1.55; }
+.wl { border-left: 3px solid #EF9F27;         background: var(--amber-light); border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--amber); line-height: 1.55; }
+.il { border-left: 3px solid #378ADD;         background: var(--blue-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--blue); line-height: 1.55; }
+.rl { border-left: 3px solid #C74848;         background: var(--red-light);   border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--red); line-height: 1.55; }
+
+.code-block { background: var(--gray-light); border: 0.75px solid var(--border); border-radius: 6px; padding: 9px 12px; font-family: var(--font-mono); font-size: 8.5pt; line-height: 1.6; white-space: pre; margin-bottom: 9px; color: var(--text); overflow-x: auto; text-align: left; }
+
+/* Syntax token classes */
+.kw { color: #3C3489; font-weight: 600; }
+.st { color: #0F6E56; }
+.cm { color: #8A8880; font-style: italic; }
+.nm { color: #854F0B; }
+.fn { color: #0C447C; }
+
+.step-item { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 7px; font-size: 9.5pt; color: var(--text); line-height: 1.55; }
+.step-num  { width: 20px; height: 20px; border-radius: 50%; background: #9FE1CB; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+
+.qa-block { margin-bottom: 9px; }
+.qa-q { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.qa-a { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; padding-left: 10px; border-left: 2px solid var(--border); }
+
+.tag { display: inline-block; font-size: 8pt; font-weight: 600; padding: 1px 7px; border-radius: 3px; margin-right: 3px; }
+.tg { background: var(--green-light); color: var(--green); }
+.tr { background: var(--red-light);   color: var(--red); }
+.ta { background: var(--amber-light); color: var(--amber); }
+.tb { background: var(--blue-light);  color: var(--blue); }
+
+.cmp    { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 9px; }
+.cmp th { background: var(--gray-light); color: var(--text); font-weight: 600; padding: 6px 10px; text-align: left; border: 0.75px solid var(--border); }
+.cmp td { padding: 5px 10px; border: 0.75px solid var(--border); color: var(--text-muted); vertical-align: top; line-height: 1.5; }
+.cmp td strong { color: var(--text); }
+
+.divider { border-top: 0.75px solid var(--border); margin: 14px 0; }
+
+/* Graph diagram styles */
+.graph-container { display: flex; justify-content: center; align-items: center; margin: 10px 0 12px 0; }
+.graph-svg { overflow: visible; }
+
+/* Iteration table */
+.iter-table { width: 100%; border-collapse: collapse; font-size: 9pt; font-family: var(--font-mono); margin-bottom: 9px; }
+.iter-table th { background: var(--gray-light); color: var(--text); font-weight: 600; padding: 5px 10px; text-align: center; border: 0.75px solid var(--border); }
+.iter-table td { padding: 4px 10px; border: 0.75px solid var(--border); color: var(--text-muted); text-align: center; }
+.iter-table td.highlight { color: var(--teal); font-weight: 600; }
+
+@media print {
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { background: #fff; }
+  .page { width: 100%; padding: 15mm 14mm; }
+  .section { page-break-inside: avoid; }
+  .card    { page-break-inside: avoid; }
+  @page { size: A4; margin: 0; }
+}
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="lecture-header">
+    <div class="lecture-title">Lecture 10 &mdash; Graphs &amp; PageRank</div>
+    <div class="lecture-sub">CS4225 / CS5425 &middot; Big Data Systems for Data Science &middot; National University of Singapore</div>
+  </div>
+
+  <!-- SECTION 1: What is a Graph? -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">1</span> What is a Graph?</div>
+
+    <div class="hl"><strong>Core insight:</strong> A graph is a data structure made of <strong>nodes</strong> (entities) and <strong>edges</strong> (relationships between entities). Graphs are everywhere — the web, social networks, citation networks, traffic maps, and biological networks all share this structure.</div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Nodes (Vertices)</div>
+        <div class="card-body">Represent individual entities. Examples: people in a social network, web pages, journals in a citation network, intersections in a road map.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Edges (Links)</div>
+        <div class="card-body">Represent relationships between nodes. Can be <strong>undirected</strong> (e.g. friendship — symmetric) or <strong>directed</strong> (e.g. hyperlinks, citations — one-way).</div>
+      </div>
+    </div>
+
+    <p><strong>Why graphs are special:</strong> The relationships between entities often contain as much information as the entities themselves. Knowing that Wikipedia is linked to by millions of pages tells you something important about its authority &mdash; something you can't see just by looking at the page content.</p>
+
+    <p><strong>Graph processing tasks include:</strong></p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Graph Mining</div>
+        <div class="card-body">PageRank, community detection, node similarity.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Graph Learning</div>
+        <div class="card-body">Node prediction, graph-level prediction (ML on graphs).</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Systems</div>
+        <div class="card-body">Small graphs: NetworkX, iGraph. Large graphs: Pregel, Spark GraphX, Graph DBs (Neo4j).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Why Graph Processing Matters -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">2</span> Why Graph Processing Matters</div>
+
+    <p>The web can be modelled as a <strong>directed graph</strong> where nodes are web pages and edges are hyperlinks. With billions of nodes and trillions of edges, we need scalable algorithms to extract insight from this structure.</p>
+
+    <div class="hl"><strong>Core problem:</strong> Not all web pages are equally important. How do we <em>automatically</em> rank billions of pages so that search engines can return the most relevant and trustworthy results?</div>
+
+    <p>This is the original motivation for <strong>PageRank</strong> — the algorithm that powered Google's early search engine. PageRank-like methods are now also used in bioinformatics (ranking proteins), social network analysis, and recommendation systems.</p>
+  </div>
+
+  <!-- SECTION 3: Simplified PageRank — Flow Formulation -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">3</span> Simplified PageRank &mdash; Flow Formulation</div>
+
+    <p><strong>Idea: Links as votes.</strong> If many important pages link to a page, that page must be important too. But naive in-link counting is gameable (anyone can create dummy pages). The solution: the number of "votes" a page can cast is proportional to its own importance &mdash; making the definition <em>recursive</em>.</p>
+
+    <p><strong>Formal definition:</strong> For page <em>j</em>, its rank <em>r<sub>j</sub></em> is:</p>
+
+    <div class="code-block">r<sub>j</sub> = Σ<sub>i→j</sub> ( r<sub>i</sub> / d<sub>i</sub> )
+
+where:  r<sub>i</sub> = importance (rank) of page i
+        d<sub>i</sub> = out-degree of page i (number of out-links)</div>
+
+    <p>Each in-link from page <em>i</em> contributes a fraction <em>r<sub>i</sub> / d<sub>i</sub></em> of i's importance. Pages with high importance and few out-links contribute the most votes per link.</p>
+
+    <!-- The "web in 1839" 3-node directed graph -->
+    <p><strong>Worked example &mdash; "The Web in 1839" (3 pages: y, a, m):</strong></p>
+
+    <div class="graph-container">
+      <svg class="graph-svg" width="440" height="230" viewBox="0 0 440 230">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#444441"/>
+          </marker>
+        </defs>
+        <!-- Edges: y→y (self-loop), y→a, a→y, a→m (curved right), m→a (curved left) -->
+        <!-- y(80,80)  a(280,80)  m(180,180)  r=24 -->
+
+        <!-- y → y self-loop (arc over top-left of y) -->
+        <path d="M 60 70 Q 20 20 78 56" fill="none" stroke="#444441" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- y → a (offset up, y=76) -->
+        <line x1="104" y1="76" x2="256" y2="76" stroke="#444441" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- a → y (offset down, y=85) -->
+        <line x1="256" y1="85" x2="104" y2="85" stroke="#444441" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- a → m (curved right/outward) -->
+        <path d="M 270 104 Q 248 148 204 170" fill="none" stroke="#444441" stroke-width="1.5" marker-end="url(#arr)"/>
+        <!-- m → a (curved left/inward) -->
+        <path d="M 190 156 Q 222 113 256 90" fill="none" stroke="#444441" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- Nodes (drawn last so they sit on top of edges) -->
+        <circle cx="80" cy="80" r="24" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+        <text x="80" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#0F6E56" font-family="DM Sans, sans-serif">y</text>
+        <text x="80" y="91" text-anchor="middle" font-size="7.5" fill="#0F6E56" font-family="DM Sans, sans-serif">out-deg=2</text>
+
+        <circle cx="280" cy="80" r="24" fill="#EEEDFE" stroke="#3C3489" stroke-width="2"/>
+        <text x="280" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#3C3489" font-family="DM Sans, sans-serif">a</text>
+        <text x="280" y="91" text-anchor="middle" font-size="7.5" fill="#3C3489" font-family="DM Sans, sans-serif">out-deg=2</text>
+
+        <circle cx="180" cy="180" r="24" fill="#FAEEDA" stroke="#854F0B" stroke-width="2"/>
+        <text x="180" y="176" text-anchor="middle" font-size="13" font-weight="700" fill="#854F0B" font-family="DM Sans, sans-serif">m</text>
+        <text x="180" y="191" text-anchor="middle" font-size="7.5" fill="#854F0B" font-family="DM Sans, sans-serif">out-deg=1</text>
+
+        <!-- Edge labels -->
+        <text x="26" y="35" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">r_y/2</text>
+        <text x="180" y="66" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">r_y/2</text>
+        <text x="180" y="98" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">r_a/2</text>
+        <text x="260" y="142" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">r_a/2</text>
+        <text x="212" y="112" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">r_m</text>
+      </svg>
+    </div>
+
+    <p>From the diagram, the flow equations are:</p>
+
+    <div class="code-block">r_y = r_y/2 + r_a/2          <span class="cm"># y receives half from y and half from a</span>
+r_a = r_y/2 + r_m            <span class="cm"># a receives half from y and all from m</span>
+r_m = r_a/2                  <span class="cm"># m receives half from a</span>
+
+Constraint:  r_y + r_a + r_m = 1   <span class="cm"># scores must sum to 1</span>
+
+Solution:    r_y = 2/5,  r_a = 2/5,  r_m = 1/5</div>
+
+    <div class="wl"><strong>Exam trap:</strong> The system of flow equations always has a redundant equation — you must add the normalisation constraint (sum = 1) to get a unique solution. For large graphs, solving directly is impractical, so we use <strong>Power Iteration</strong> instead.</div>
+  </div>
+
+  <!-- SECTION 4: Matrix Formulation -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">4</span> Matrix Formulation &amp; Power Iteration</div>
+
+    <p>The flow equations can be written compactly using a matrix. This enables efficient computation on large graphs.</p>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Stochastic Adjacency Matrix M</div>
+        <div class="card-body">
+          M<sub>ji</sub> = 1/d<sub>i</sub> if there is an edge i &rarr; j, else 0.<br><br>
+          Each <strong>column</strong> represents one page's outgoing votes. Columns sum to 1 (column-stochastic). The (j,i) entry is the fraction of importance that page i sends to page j.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Rank Vector r</div>
+        <div class="card-body">
+          A vector with one entry per page. r<sub>i</sub> is the importance score of page i. All entries sum to 1.<br><br>
+          The flow equation becomes: <strong>r = M · r</strong><br>
+          i.e. r is an eigenvector of M with eigenvalue 1.
+        </div>
+      </div>
+    </div>
+
+    <p><strong>Example &mdash; M matrix for the y/a/m graph:</strong></p>
+    <div class="code-block">        y    a    m
+    y [ 1/2  1/2   0 ]
+M = a [ 1/2   0    1 ]
+    m [  0   1/2   0 ]
+
+r = M · r  is equivalent to the three flow equations above.</div>
+
+    <div class="divider"></div>
+
+    <p><strong>Power Iteration</strong> &mdash; how to solve r = M·r at web scale:</p>
+
+    <div class="step-item"><span class="step-num">1</span><div><strong>Initialise:</strong> Set r<sup>(0)</sup> = [1/N, 1/N, …, 1/N]<sup>T</sup> — all pages start with equal importance.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div><strong>Iterate:</strong> Compute r<sup>(t+1)</sup> = M · r<sup>(t)</sup> — each page distributes its current importance to its out-neighbours.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div><strong>Stop</strong> when the change is small: |r<sup>(t+1)</sup> &minus; r<sup>(t)</sup>|<sub>1</sub> &lt; &epsilon;. Typically converges in ~50&ndash;100 iterations.</div></div>
+
+    <p><strong>Worked iteration for y/a/m:</strong></p>
+    <table class="iter-table">
+      <tr><th>Page</th><th>Iter 0</th><th>Iter 1</th><th>Iter 2</th><th>Iter 3</th><th>Converged</th></tr>
+      <tr><td>y</td><td>1/3 ≈ 0.333</td><td>1/3 ≈ 0.333</td><td>5/12 ≈ 0.417</td><td>9/24 = 0.375</td><td class="highlight">2/5 = 0.400</td></tr>
+      <tr><td>a</td><td>1/3 ≈ 0.333</td><td>1/2 = 0.500</td><td>1/3 ≈ 0.333</td><td>11/24 ≈ 0.458</td><td class="highlight">2/5 = 0.400</td></tr>
+      <tr><td>m</td><td>1/3 ≈ 0.333</td><td>1/6 ≈ 0.167</td><td>1/4 = 0.250</td><td>1/6 ≈ 0.167</td><td class="highlight">1/5 = 0.200</td></tr>
+    </table>
+
+    <div class="il"><strong>Intuition:</strong> Power iteration simulates what happens if you let importance flow around the graph over and over. Each "round" every page sends its importance evenly along its out-links and receives importance from its in-links. Eventually the scores stabilise.</div>
+  </div>
+
+  <!-- SECTION 5: Random Walk Interpretation -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">5</span> Random Walk Interpretation</div>
+
+    <div class="hl"><strong>Core insight:</strong> The PageRank score of a page = the long-run probability that a random web surfer is on that page. The two formulations (flow and random walk) are mathematically identical.</div>
+
+    <p><strong>The random surfer model:</strong></p>
+    <div class="step-item"><span class="step-num">1</span><div>At time t=0, the surfer starts on a random page.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div>At each step, the surfer picks one of the current page's out-links uniformly at random and follows it.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div>This repeats indefinitely. Let p(t) be the probability distribution over pages at time t.</div></div>
+    <div class="step-item"><span class="step-num">4</span><div>p(t+1) = M · p(t). As t &rarr; &infin;, p(t) converges to a <strong>stationary distribution</strong> p<sub>s</sub>, where p<sub>s</sub> = M · p<sub>s</sub>.</div></div>
+
+    <p>This is exactly the same equation as <strong>r = M · r</strong>. So the stationary distribution of the random walk <em>is</em> the PageRank vector. A page with high PageRank is simply a page where a random surfer spends a lot of time.</p>
+
+    <div class="graph-container">
+      <svg class="graph-svg" width="440" height="120" viewBox="0 0 440 120">
+        <defs>
+          <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#1D9E75"/>
+          </marker>
+        </defs>
+        <!-- Boxes showing surfer moving through nodes -->
+        <rect x="10" y="35" width="80" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+        <text x="50" y="57" text-anchor="middle" font-size="9" font-weight="600" fill="#0F6E56" font-family="DM Sans, sans-serif">t = 0</text>
+        <text x="50" y="72" text-anchor="middle" font-size="8" fill="#0F6E56" font-family="DM Sans, sans-serif">p = [⅓, ⅓, ⅓]</text>
+
+        <line x1="92" y1="60" x2="108" y2="60" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+        <rect x="110" y="35" width="80" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+        <text x="150" y="57" text-anchor="middle" font-size="9" font-weight="600" fill="#0F6E56" font-family="DM Sans, sans-serif">t = 1</text>
+        <text x="150" y="72" text-anchor="middle" font-size="8" fill="#0F6E56" font-family="DM Sans, sans-serif">p = M · p(0)</text>
+
+        <line x1="192" y1="60" x2="208" y2="60" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+        <rect x="210" y="35" width="80" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+        <text x="250" y="57" text-anchor="middle" font-size="9" font-weight="600" fill="#0F6E56" font-family="DM Sans, sans-serif">t = 2</text>
+        <text x="250" y="72" text-anchor="middle" font-size="8" fill="#0F6E56" font-family="DM Sans, sans-serif">p = M · p(1)</text>
+
+        <line x1="292" y1="60" x2="308" y2="60" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+        <rect x="310" y="35" width="120" height="50" rx="6" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+        <text x="370" y="57" text-anchor="middle" font-size="9" font-weight="600" fill="#0F6E56" font-family="DM Sans, sans-serif">t → ∞</text>
+        <text x="370" y="72" text-anchor="middle" font-size="8" fill="#0F6E56" font-family="DM Sans, sans-serif">p = [2/5, 2/5, 1/5]</text>
+
+        <text x="220" y="108" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="DM Sans, sans-serif">Stationary distribution = PageRank scores (for y, a, m)</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- SECTION 6: Problems — Dead Ends & Spider Traps -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">6</span> Two Problems with Simplified PageRank</div>
+
+    <p>The simplified equation <strong>r = M·r</strong> does not always converge to something meaningful. There are two failure modes:</p>
+
+    <div class="grid2">
+
+      <!-- Problem 1: Dead Ends -->
+      <div class="card">
+        <div class="card-title" style="color: var(--red);">Problem 1 — Dead Ends</div>
+        <div class="card-body">
+          A page with <strong>no out-links</strong> is a dead end. The random surfer arrives but has nowhere to go. Importance <strong>leaks out</strong> of the system &mdash; the matrix M is no longer column-stochastic (one column sums to 0 instead of 1), so the total importance shrinks toward zero with each iteration.
+        </div>
+      </div>
+
+      <!-- Problem 2: Spider Traps -->
+      <div class="card">
+        <div class="card-title" style="color: var(--red);">Problem 2 — Spider Traps</div>
+        <div class="card-body">
+          A group of pages whose out-links all point <strong>only within the group</strong> (including a single page that links only to itself). The random surfer gets stuck inside and never leaves. Over time, the group <strong>absorbs all importance</strong> and every other page's rank goes to zero.
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagrams: dead end and spider trap -->
+    <div class="grid2">
+      <div style="text-align: center;">
+        <svg width="200" height="140" viewBox="0 0 200 140">
+          <defs>
+            <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#444441"/>
+            </marker>
+          </defs>
+          <!-- a → b -->
+          <line x1="65" y1="55" x2="130" y2="55" stroke="#444441" stroke-width="1.5" marker-end="url(#arr3)"/>
+          <!-- b → nothing (dead end) -->
+          <circle cx="50" cy="55" r="22" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+          <text x="50" y="59" text-anchor="middle" font-size="11" font-weight="700" fill="#0F6E56" font-family="DM Sans, sans-serif">a</text>
+          <circle cx="150" cy="55" r="22" fill="#FCEBEB" stroke="#C74848" stroke-width="2" stroke-dasharray="4,2"/>
+          <text x="150" y="51" text-anchor="middle" font-size="11" font-weight="700" fill="#791F1F" font-family="DM Sans, sans-serif">b</text>
+          <text x="150" y="66" text-anchor="middle" font-size="7" fill="#791F1F" font-family="DM Sans, sans-serif">dead end</text>
+          <!-- importance leaks down -->
+          <line x1="150" y1="79" x2="150" y2="110" stroke="#C74848" stroke-width="1.5" stroke-dasharray="3,2"/>
+          <text x="150" y="125" text-anchor="middle" font-size="7.5" fill="#791F1F" font-family="DM Sans, sans-serif">importance leaks out</text>
+          <text x="100" y="130" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-family="DM Sans, sans-serif">Dead End</text>
+        </svg>
+      </div>
+
+      <div style="text-align: center;">
+        <svg width="200" height="140" viewBox="0 0 200 140">
+          <defs>
+            <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#444441"/>
+            </marker>
+          </defs>
+          <!-- y → m  -->
+          <line x1="65" y1="67" x2="122" y2="85" stroke="#444441" stroke-width="1.5" marker-end="url(#arr4)"/>
+          <!-- a → m  -->
+          <line x1="65" y1="77" x2="120" y2="90" stroke="#444441" stroke-width="1.5" marker-end="url(#arr4)"/>
+          <!-- m self-loop -->
+          <path d="M 148 70 Q 185 45 162 78" stroke="#C74848" stroke-width="1.5" fill="none" marker-end="url(#arr4)"/>
+          <!-- Nodes -->
+          <circle cx="45" cy="55" r="20" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+          <text x="45" y="59" text-anchor="middle" font-size="11" font-weight="700" fill="#0F6E56" font-family="DM Sans, sans-serif">y</text>
+          <circle cx="45" cy="90" r="20" fill="#EEEDFE" stroke="#3C3489" stroke-width="1.5"/>
+          <text x="45" y="94" text-anchor="middle" font-size="11" font-weight="700" fill="#3C3489" font-family="DM Sans, sans-serif">a</text>
+          <circle cx="145" cy="90" r="22" fill="#FCEBEB" stroke="#C74848" stroke-width="2"/>
+          <text x="145" y="86" text-anchor="middle" font-size="11" font-weight="700" fill="#791F1F" font-family="DM Sans, sans-serif">m</text>
+          <text x="145" y="100" text-anchor="middle" font-size="7" fill="#791F1F" font-family="DM Sans, sans-serif">spider trap</text>
+          <text x="100" y="130" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-family="DM Sans, sans-serif">Spider Trap (m absorbs all importance)</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="rl"><strong>Result of both problems:</strong> Power iteration either converges to zero (dead ends) or all importance collapses into the trap (spider traps). Neither gives a meaningful ranking. We need a fix.</div>
+  </div>
+
+  <!-- SECTION 7: PageRank with Teleports -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">7</span> PageRank with Teleports (The Real Google PageRank)</div>
+
+    <div class="hl"><strong>The Google fix:</strong> At each step, the random surfer doesn't always follow a link. With probability <strong>&beta;</strong> (typically 0.8–0.9) they follow a link at random. With probability <strong>1 &minus; &beta;</strong> they "teleport" to a completely random page. This prevents both dead ends and spider traps.</div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Fixes Spider Traps</div>
+        <div class="card-body">The surfer will eventually teleport <em>out</em> of any spider trap with probability (1-&beta;) at each step. No trap can hold the surfer forever.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Fixes Dead Ends</div>
+        <div class="card-body">At a dead end, the surfer always teleports (probability 1.0). Equivalently, we add edges from every dead-end node to <em>every</em> other node in the preprocessing step.</div>
+      </div>
+    </div>
+
+    <p><strong>Updated flow equation (Brin &amp; Page, 1998):</strong></p>
+    <div class="code-block">r_j = Σ<sub>i→j</sub> ( β · r_i / d_i ) + (1 - β) / N
+
+<span class="cm"># β      = damping factor (probability of following a link)</span>
+<span class="cm"># 1 - β  = teleportation probability</span>
+<span class="cm"># N      = total number of pages</span>
+<span class="cm"># d_i    = out-degree of page i</span></div>
+
+    <p><strong>Google Matrix A</strong> &mdash; matrix form:</p>
+    <div class="code-block">A = β · M  +  (1 - β) · [1/N]<sub>N×N</sub>
+
+<span class="cm"># [1/N] is an N×N matrix where every entry = 1/N</span>
+<span class="cm"># A is column-stochastic (columns sum to 1) by construction</span>
+<span class="cm"></span>Example: for y, a and m earlier:</span>
+<div class="code-block">            y    a    m
+        y [ 1/2  1/2   0 ]             [ 1/3  1/3   1/3 ]
+A = β · a [ 1/2   0    1 ] + (1 - β) · [ 1/3  1/3   1/3 ]
+        m [  0   1/2   0 ]             [ 1/3  1/3   1/3 ]</div>
+PageRank equation:  r = A · r   (then solve with Power Iteration)</div>
+
+    <!-- Teleport diagram showing the flow split -->
+    <div class="graph-container">
+      <svg class="graph-svg" width="440" height="130" viewBox="0 0 440 130">
+        <defs>
+          <marker id="arr5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#1D9E75"/>
+          </marker>
+          <marker id="arr6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#854F0B"/>
+          </marker>
+        </defs>
+        <!-- Current node -->
+        <circle cx="80" cy="65" r="28" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+        <text x="80" y="62" text-anchor="middle" font-size="10" font-weight="700" fill="#0F6E56" font-family="DM Sans, sans-serif">current</text>
+        <text x="80" y="76" text-anchor="middle" font-size="8" fill="#0F6E56" font-family="DM Sans, sans-serif">page</text>
+
+        <!-- Follow link (teal) -->
+        <line x1="108" y1="50" x2="240" y2="35" stroke="#1D9E75" stroke-width="1.5" marker-end="url(#arr5)"/>
+        <text x="165" y="33" text-anchor="middle" font-size="8.5" fill="#0F6E56" font-family="DM Sans, sans-serif">with prob β → follow a link</text>
+        <circle cx="265" cy="35" r="22" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+        <text x="265" y="39" text-anchor="middle" font-size="9" font-weight="600" fill="#0F6E56" font-family="DM Sans, sans-serif">linked page</text>
+
+        <!-- Teleport (amber) -->
+        <line x1="108" y1="78" x2="240" y2="95" stroke="#EF9F27" stroke-width="1.5" marker-end="url(#arr6)"/>
+        <text x="165" y="110" text-anchor="middle" font-size="8.5" fill="#854F0B" font-family="DM Sans, sans-serif">with prob (1-β) → jump to any random page</text>
+        <circle cx="265" cy="95" r="22" fill="#FAEEDA" stroke="#EF9F27" stroke-width="1.5"/>
+        <text x="265" y="92" text-anchor="middle" font-size="9" font-weight="600" fill="#854F0B" font-family="DM Sans, sans-serif">any random</text>
+        <text x="265" y="105" text-anchor="middle" font-size="9" fill="#854F0B" font-family="DM Sans, sans-serif">page</text>
+      </svg>
+    </div>
+
+    <div class="wl"><strong>Exam tip:</strong> The damping factor &beta; is a key design choice. Higher &beta; &rarr; the walk trusts link structure more, converges slower. Lower &beta; &rarr; more uniform scores, faster convergence. Common exam values: &beta; = 0.8 or 0.85. Know how to plug into the formula and compute A.</div>
+  </div>
+
+  <!-- SECTION 8: Topic-Specific PageRank -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">8</span> Topic-Specific PageRank</div>
+
+    <p><strong>Motivation:</strong> Standard PageRank measures generic importance. If you search for "Jordan", should you see basketball or the country? A sports-focused user and a geography student want different results. Topic-Specific PageRank solves this.</p>
+
+    <div class="hl"><strong>Key idea:</strong> Instead of teleporting to <em>any</em> random page, bias the teleport to only jump to pages within a specific <strong>teleport set S</strong> (a curated set of topic-relevant pages). This makes importance "flow" toward pages related to the topic.</div>
+
+    <p><strong>Modified Google Matrix:</strong></p>
+    <div class="code-block">A_ij = β · M_ij + (1 - β) · v_i · 1<sup>T</sup><br>
+v_i = 1 / |S|    if page i ∈ S  <span class="cm"># teleport only into topic set</span>
+v_i = 0          otherwise
+1<sup>T</sup> = [1]<sub>1×N</sub>
+
+<span class="cm"># |S| = size of teleport set</span>
+<span class="cm"># We weight pages in S equally (or can assign different weights)</span></div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">How to determine S?</div>
+        <div class="card-body">
+          &bull; User picks from a topic menu (e.g. DMOZ 16 top-level categories: arts, sports, business, …)<br>
+          &bull; Classify the query into a topic automatically<br>
+          &bull; Use context: surrounding web page, query history, bookmarks
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Effect of changing S and β</div>
+        <div class="card-body">
+          Smaller S &rarr; more concentrated importance around S.<br>
+          Larger β &rarr; importance spreads further along links.<br>
+          Example (node 1 is in S): S={1}, β=0.7 gives node 1 rank ≈ 0.39; β=0.9 gives ≈ 0.17 (link structure dominates more).
+        </div>
+      </div>
+    </div>
+
+    <p><strong>Worked example (from lecture) &mdash; 4-node graph, S&nbsp;=&nbsp;{1}, &beta;&nbsp;=&nbsp;0.8:</strong></p>
+
+    <!-- 4-node graph: 1→2,3  2→1  3→4  4→3 -->
+    <div class="graph-container">
+      <svg class="graph-svg" width="360" height="265" viewBox="0 0 360 265">
+        <defs>
+          <marker id="arr-ts" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#444441"/>
+          </marker>
+        </defs>
+        <!-- Nodes: 1(80,80)  2(80,190)  3(260,80)  4(260,190)  r=22 -->
+
+        <!-- 1 → 2 (left-column, going down, x=73) -->
+        <line x1="73" y1="101" x2="73" y2="169" stroke="#444441" stroke-width="1.5" marker-end="url(#arr-ts)"/>
+        <!-- 2 → 1 (left-column, going up, x=87) -->
+        <line x1="87" y1="169" x2="87" y2="101" stroke="#444441" stroke-width="1.5" marker-end="url(#arr-ts)"/>
+        <!-- 1 → 3 (top row, going right) -->
+        <line x1="102" y1="80" x2="238" y2="80" stroke="#444441" stroke-width="1.5" marker-end="url(#arr-ts)"/>
+        <!-- 3 → 4 (right-column, going down, x=253) -->
+        <line x1="253" y1="101" x2="253" y2="169" stroke="#444441" stroke-width="1.5" marker-end="url(#arr-ts)"/>
+        <!-- 4 → 3 (right-column, going up, x=267) -->
+        <line x1="267" y1="169" x2="267" y2="101" stroke="#444441" stroke-width="1.5" marker-end="url(#arr-ts)"/>
+
+        <!-- Node 1 — amber (in teleport set S) -->
+        <circle cx="80" cy="80" r="22" fill="#FAEEDA" stroke="#854F0B" stroke-width="2.5"/>
+        <text x="80" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#854F0B" font-family="DM Sans, sans-serif">A</text>
+        <text x="80" y="89" text-anchor="middle" font-size="7" fill="#854F0B" font-family="DM Sans, sans-serif">d=2</text>
+        <text x="80" y="51" text-anchor="middle" font-size="8" font-weight="700" fill="#854F0B" font-family="DM Sans, sans-serif">S = {1}</text>
+
+        <!-- Node 2 — teal -->
+        <circle cx="80" cy="190" r="22" fill="#E1F5EE" stroke="#1D9E75" stroke-width="2"/>
+        <text x="80" y="186" text-anchor="middle" font-size="13" font-weight="700" fill="#0F6E56" font-family="DM Sans, sans-serif">B</text>
+        <text x="80" y="199" text-anchor="middle" font-size="7" fill="#0F6E56" font-family="DM Sans, sans-serif">d=1</text>
+
+        <!-- Node 3 — purple -->
+        <circle cx="260" cy="80" r="22" fill="#EEEDFE" stroke="#3C3489" stroke-width="2"/>
+        <text x="260" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#3C3489" font-family="DM Sans, sans-serif">C</text>
+        <text x="260" y="89" text-anchor="middle" font-size="7" fill="#3C3489" font-family="DM Sans, sans-serif">d=1</text>
+
+        <!-- Node 4 — blue -->
+        <circle cx="260" cy="190" r="22" fill="#E6F1FB" stroke="#0C447C" stroke-width="2"/>
+        <text x="260" y="186" text-anchor="middle" font-size="13" font-weight="700" fill="#0C447C" font-family="DM Sans, sans-serif">D</text>
+        <text x="260" y="199" text-anchor="middle" font-size="7" fill="#0C447C" font-family="DM Sans, sans-serif">d=1</text>
+
+        <!-- Edge weight labels -->
+        <text x="55"  y="136" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">1/2</text>
+        <text x="106" y="136" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">1</text>
+        <text x="170" y="68"  text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">1/2</text>
+        <text x="237" y="136" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">1</text>
+        <text x="287" y="136" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="JetBrains Mono, monospace">1</text>
+
+        <!-- Caption -->
+        <text x="170" y="248" text-anchor="middle" font-size="8" fill="#5F5E5A" font-family="DM Sans, sans-serif">Edge labels = 1/d fraction sent per link. Amber node 1 is the teleport set S.</text>
+      </svg>
+    </div>
+    <div class="code-block">                A    B    C   D                v_i         1<sup>T</sup>
+           A [  0    1    0   0 ]             [ 1 ]
+A_ij = β · B [ 1/2   0    0   0 ] + (1 - β) · [ 0 ] · [ 1 1 1 1 ]
+           C [ 1/2   0    0   1 ]             [ 0 ]
+           D [  0    0    1   0 ]             [ 0 ] </span></div>
+
+    <p>Iteration table (S&nbsp;=&nbsp;{1}, &beta;&nbsp;=&nbsp;0.8 throughout):</p>
+    <table class="iter-table">
+      <tr><th>Node</th><th>Iter 0</th><th>Iter 1</th><th>Iter 2</th><th>&hellip;</th><th>Stable</th></tr>
+      <tr><td>1</td><td>0.250</td><td>0.400</td><td>0.280</td><td>&hellip;</td><td class="highlight">0.294</td></tr>
+      <tr><td>2</td><td>0.250</td><td>0.100</td><td>0.160</td><td>&hellip;</td><td class="highlight">0.118</td></tr>
+      <tr><td>3</td><td>0.250</td><td>0.300</td><td>0.320</td><td>&hellip;</td><td class="highlight">0.327</td></tr>
+      <tr><td>4</td><td>0.250</td><td>0.200</td><td>0.240</td><td>&hellip;</td><td class="highlight">0.261</td></tr>
+    </table>
+
+    <div class="wl"><strong>Notice:</strong> Node 1 jumps to 0.4 in Iter 1 because 20% of all teleports land on it (1&minus;&beta;=0.2 flows to node 1). This boost then propagates: node 2 rises in Iter 2 because it receives from the newly-boosted node 1, and so on.</div>
+
+    <p><strong>How the converged ranks shift when you change S and &beta;:</strong></p>
+    <div class="grid2">
+      <div>
+        <p style="font-size:9pt; font-weight:600; margin-bottom:5px;">Varying S &mdash; &beta; fixed at 0.8</p>
+        <table class="cmp">
+          <tr><th>Teleport set S</th><th>r<sub>1</sub></th><th>r<sub>2</sub></th><th>r<sub>3</sub></th><th>r<sub>4</sub></th></tr>
+          <tr><td><strong>{1,2,3,4}</strong> <span class="tag tb">standard</span></td><td>0.13</td><td>0.10</td><td>0.39</td><td>0.36</td></tr>
+          <tr><td><strong>{1,2,3}</strong></td><td>0.17</td><td>0.13</td><td>0.38</td><td>0.30</td></tr>
+          <tr><td><strong>{1,2}</strong></td><td>0.26</td><td>0.20</td><td>0.29</td><td>0.23</td></tr>
+          <tr><td><strong>{1}</strong></td><td>0.29</td><td>0.11</td><td>0.32</td><td>0.26</td></tr>
+        </table>
+        <p style="font-size:8.5pt; color: var(--text-muted);">Smaller S &rarr; more concentrated boost around the topic nodes. Node 1 rises from 0.13 to 0.29 as S shrinks to just {1}.</p>
+      </div>
+      <div>
+        <p style="font-size:9pt; font-weight:600; margin-bottom:5px;">Varying &beta; &mdash; S fixed at {1}</p>
+        <table class="cmp">
+          <tr><th>&beta;</th><th>r<sub>1</sub></th><th>r<sub>2</sub></th><th>r<sub>3</sub></th><th>r<sub>4</sub></th></tr>
+          <tr><td><strong>0.7</strong></td><td>0.39</td><td>0.14</td><td>0.27</td><td>0.19</td></tr>
+          <tr><td><strong>0.8</strong> <span class="tag tb">used above</span></td><td>0.29</td><td>0.11</td><td>0.32</td><td>0.26</td></tr>
+          <tr><td><strong>0.9</strong></td><td>0.17</td><td>0.07</td><td>0.40</td><td>0.36</td></tr>
+        </table>
+        <p style="font-size:8.5pt; color: var(--text-muted);">Lower &beta; &rarr; surfer teleports more often &rarr; node 1 gets an even larger boost. Higher &beta; &rarr; link structure dominates &rarr; nodes 3 and 4 recover their natural authority.</p>
+      </div>
+    </div>
+
+    <div class="il"><strong>Computation:</strong> Topic-Specific PageRank is computed exactly like standard PageRank &mdash; just with a different teleport distribution. The matrix is still sparse and Power Iteration still works.</div>
+  </div>
+
+  <!-- SECTION 9: PageRank Implementation — Pregel -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">9</span> Large-Scale Implementation &mdash; Pregel</div>
+
+    <p>Graph algorithms share a common pattern: each node does a local computation and passes messages to its neighbours. Pregel (Google, 2010) formalises this as the <strong>"think like a vertex"</strong> model.</p>
+
+    <div class="hl"><strong>Think like a vertex:</strong> You write a <code>compute()</code> function that describes what a <em>single</em> vertex does in a single step. The framework runs this in parallel across all vertices repeatedly until convergence.</div>
+
+    <div class="divider"></div>
+
+    <p><strong>Pregel Computational Model:</strong></p>
+
+    <div class="phase-row">
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Superstep s</div>
+        <div class="phase-desc">Each vertex v runs compute(). Reads messages from superstep s-1. May update its own value and edge values.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-purple">
+        <div class="phase-title">Send Messages</div>
+        <div class="phase-desc">compute() sends messages to neighbours. These will be received in superstep s+1.</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">Vote to Halt</div>
+        <div class="phase-desc">Vertex can deactivate itself. Woken if new message arrives. All inactive = computation stops.</div>
+      </div>
+    </div>
+
+    <p><strong>Example &mdash; Computing the Maximum Value across all vertices:</strong></p>
+
+    <div class="code-block"><span class="fn">Compute</span>(v, messages):
+    changed = <span class="kw">False</span>
+    <span class="kw">for</span> m <span class="kw">in</span> messages:
+        <span class="kw">if</span> v.<span class="fn">getValue</span>() < m:
+            v.<span class="fn">setValue</span>(m)          <span class="cm"># update to larger value</span>
+            changed = <span class="kw">True</span>
+    <span class="kw">if</span> changed:
+        <span class="kw">for each</span> out-neighbour w:
+            <span class="fn">sendMessage</span>(w, v.<span class="fn">getValue</span>())   <span class="cm"># propagate new max</span>
+    <span class="kw">else</span>:
+        <span class="fn">voteToHalt</span>()                        <span class="cm"># no change — deactivate</span></div>
+
+    <p>Each vertex broadcasts its current value. Any vertex that sees a larger incoming value updates and re-broadcasts. This continues until no vertex updates &mdash; at which point every vertex holds the global maximum.</p>
+
+    <div class="divider"></div>
+
+    <p><strong>PageRank in Pregel (C++ pseudo-code):</strong></p>
+
+    <div class="code-block"><span class="kw">class</span> <span class="fn">PageRankVertex</span> : <span class="kw">public</span> Vertex&lt;double, void, double&gt; {
+  <span class="kw">virtual void</span> <span class="fn">Compute</span>(MessageIterator* msgs) {
+    <span class="kw">if</span> (<span class="fn">superstep</span>() >= <span class="nm">1</span>) {
+      <span class="kw">double</span> sum = <span class="nm">0</span>;
+      <span class="kw">for</span> (; !msgs-><span class="fn">Done</span>(); msgs-><span class="fn">Next</span>())
+        sum += msgs-><span class="fn">Value</span>();              <span class="cm">// sum messages from neighbours</span>
+      *<span class="fn">MutableValue</span>() = <span class="nm">0.15</span> / <span class="fn">NumVertices</span>() + <span class="nm">0.85</span> * sum; <span class="cm">// PageRank update</span>
+    }
+    <span class="kw">if</span> (<span class="fn">superstep</span>() < <span class="nm">30</span>) {
+      <span class="kw">const int</span> n = <span class="fn">GetOutEdgeIterator</span>().<span class="fn">size</span>();
+      <span class="fn">SendMessageToAllNeighbors</span>(<span class="fn">GetValue</span>() / n); <span class="cm">// send r_i / d_i to each neighbour</span>
+    } <span class="kw">else</span> {
+      <span class="fn">VoteToHalt</span>();   <span class="cm">// stop after 30 iterations</span>
+    }
+  }
+};</div>
+
+    <div class="il"><strong>Mapping to PageRank formula:</strong> Each vertex sends r<sub>i</sub>/d<sub>i</sub> along each out-edge. The receiver sums all incoming messages (= Σ r<sub>i</sub>/d<sub>i</sub>), then applies the update: r<sub>j</sub> = 0.15/N + 0.85 × sum. Here β = 0.85, (1-β)/N = 0.15/N.</div>
+
+    <div class="divider"></div>
+
+    <p><strong>Pregel Implementation Details:</strong></p>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Master &amp; Workers Architecture</div>
+        <div class="card-body">
+          Vertices are hash-partitioned (<strong>edge cut</strong>) and assigned to workers. Each worker keeps its portion of the graph in memory. In each superstep, workers loop through their vertices and call compute(). Messages to remote vertices are batched to reduce network traffic.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Fault Tolerance</div>
+        <div class="card-body">
+          Pregel uses <strong>checkpointing</strong> to persistent storage at the start of each superstep. Failures are detected via heartbeats. Failed workers are reassigned and state is restored from the last checkpoint.
+        </div>
+      </div>
+    </div>
+
+    <!-- Pregel superstep diagram -->
+    <div class="graph-container">
+      <svg class="graph-svg" width="440" height="195" viewBox="0 0 440 195">
+        <defs>
+          <marker id="arr-pg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#444441"/>
+          </marker>
+          <marker id="arr-pg-msg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#854F0B"/>
+          </marker>
+        </defs>
+
+        <!-- Worker boxes -->
+        <rect x="10"  y="10" width="120" height="150" rx="8" fill="#EEEDFE" stroke="#3C3489" stroke-width="1"/>
+        <text x="70"  y="28" text-anchor="middle" font-size="8.5" font-weight="700" fill="#3C3489" font-family="DM Sans, sans-serif">Worker 1</text>
+        <rect x="160" y="10" width="120" height="150" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+        <text x="220" y="28" text-anchor="middle" font-size="8.5" font-weight="700" fill="#854F0B" font-family="DM Sans, sans-serif">Worker 2</text>
+        <rect x="310" y="10" width="120" height="150" rx="8" fill="#E6F1FB" stroke="#0C447C" stroke-width="1"/>
+        <text x="370" y="28" text-anchor="middle" font-size="8.5" font-weight="700" fill="#0C447C" font-family="DM Sans, sans-serif">Worker 3</text>
+
+        <!-- Intra-worker edges (solid, drawn before nodes so circles sit on top) -->
+        <!-- Worker 1: v1→v2 (horizontal) -->
+        <line x1="63" y1="70" x2="77" y2="70" stroke="#444441" stroke-width="1.2" marker-end="url(#arr-pg)"/>
+        <!-- Worker 1: v3→v1 (diagonal) -->
+        <line x1="63" y1="113" x2="52" y2="87" stroke="#444441" stroke-width="1.2" marker-end="url(#arr-pg)"/>
+        <!-- Worker 2: v4→v5 (diagonal) -->
+        <line x1="207" y1="84" x2="234" y2="116" stroke="#444441" stroke-width="1.2" marker-end="url(#arr-pg)"/>
+        <!-- Worker 3: v6→v7 (diagonal) -->
+        <line x1="357" y1="84" x2="384" y2="116" stroke="#444441" stroke-width="1.2" marker-end="url(#arr-pg)"/>
+
+        <!-- Cross-worker messages (dashed amber, batched between supersteps) -->
+        <!-- v2 → v4 (horizontal, Worker 1 → Worker 2) -->
+        <line x1="113" y1="70" x2="177" y2="70" stroke="#854F0B" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-pg-msg)"/>
+        <text x="145" y="62" text-anchor="middle" font-size="7.5" fill="#854F0B" font-family="DM Sans, sans-serif">msg</text>
+        <!-- v5 → v6 (diagonal, Worker 2 → Worker 3) -->
+        <line x1="260" y1="121" x2="330" y2="79" stroke="#854F0B" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#arr-pg-msg)"/>
+        <text x="298" y="92" text-anchor="middle" font-size="7.5" fill="#854F0B" font-family="DM Sans, sans-serif">msg</text>
+
+        <!-- Vertex circles (drawn last so they sit on top of edges) -->
+        <circle cx="45"  cy="70"  r="18" fill="#fff" stroke="#3C3489" stroke-width="1.5"/>
+        <text x="45"  y="74"  text-anchor="middle" font-size="9" font-weight="700" fill="#3C3489" font-family="DM Sans, sans-serif">v1</text>
+        <circle cx="95"  cy="70"  r="18" fill="#fff" stroke="#3C3489" stroke-width="1.5"/>
+        <text x="95"  y="74"  text-anchor="middle" font-size="9" font-weight="700" fill="#3C3489" font-family="DM Sans, sans-serif">v2</text>
+        <circle cx="70"  cy="130" r="18" fill="#fff" stroke="#3C3489" stroke-width="1.5"/>
+        <text x="70"  y="134" text-anchor="middle" font-size="9" font-weight="700" fill="#3C3489" font-family="DM Sans, sans-serif">v3</text>
+        <circle cx="195" cy="70"  r="18" fill="#fff" stroke="#854F0B" stroke-width="1.5"/>
+        <text x="195" y="74"  text-anchor="middle" font-size="9" font-weight="700" fill="#854F0B" font-family="DM Sans, sans-serif">v4</text>
+        <circle cx="245" cy="130" r="18" fill="#fff" stroke="#854F0B" stroke-width="1.5"/>
+        <text x="245" y="134" text-anchor="middle" font-size="9" font-weight="700" fill="#854F0B" font-family="DM Sans, sans-serif">v5</text>
+        <circle cx="345" cy="70"  r="18" fill="#fff" stroke="#0C447C" stroke-width="1.5"/>
+        <text x="345" y="74"  text-anchor="middle" font-size="9" font-weight="700" fill="#0C447C" font-family="DM Sans, sans-serif">v6</text>
+        <circle cx="395" cy="130" r="18" fill="#fff" stroke="#0C447C" stroke-width="1.5"/>
+        <text x="395" y="134" text-anchor="middle" font-size="9" font-weight="700" fill="#0C447C" font-family="DM Sans, sans-serif">v7</text>
+
+        <!-- Caption below boxes -->
+        <text x="220" y="187" text-anchor="middle" font-size="7.5" fill="#5F5E5A" font-family="DM Sans, sans-serif">&#9632; Solid = intra-worker graph edges &middot; - - - &rarr; Cross-worker messages batched per superstep</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- SECTION 10: Spark GraphX -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">10</span> Spark GraphX &amp; GraphFrame</div>
+
+    <div class="hl"><strong>GraphX</strong> extends Spark RDDs to <strong>Resilient Distributed Property Graphs</strong> &mdash; graphs where both vertices and edges carry arbitrary data (properties). It supports Pregel-like distributed computation while integrating with Spark's record-oriented processing.</div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Property Graph</div>
+        <div class="card-body">
+          Vertices and edges each have an associated property (any type). GraphX presents multiple views: a Vertex Table, an Edge Table, and Triplets (source vertex, edge, destination vertex). You can join these like regular Spark DataFrames.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Vertex Cut Partitioning</div>
+        <div class="card-body">
+          Unlike Pregel's edge cut, Spark GraphX uses <strong>vertex cut</strong>: edges are partitioned across machines, and vertices are replicated as needed. This tends to work better for power-law graphs (like the web) where a few nodes have very high degree.
+        </div>
+      </div>
+    </div>
+
+    <p><strong>Spark PageRank Implementation</strong> uses two stages repeated per iteration:</p>
+
+    <div class="phase-row">
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Stage 1: Join</div>
+        <div class="phase-desc">Join the ranks RDD with the adjacency list. Each edge (u, v) produces the contribution r_u / d_u for vertex v.
+        </div>
+        <div class="code-block">CREATE VIEW triplets AS
+SELECT s.Id, d.Id, s.P, e.P, d.P
+FROM edges AS e
+JOIN vertices AS s JOIN vertices AS d
+ON e.srcId = s.Id AND e.dstId = d.Id</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-purple">
+        <div class="phase-title">Stage 2: Group-By</div>
+        <div class="phase-desc">Group contributions by destination vertex. Sum them up and apply the PageRank formula to compute the new rank.</div>
+        <div class="code-block">SELECT t.dstId, 0.15+0.85*sum(t.srcP*t.eP)
+FROM triplets AS t GROUP BY t.dstId</div>
+      </div>
+    </div>
+
+    <div class="hl"><strong>Big picture:</strong> Spark computes PageRank with joins and aggregations instead of explicitly building and multiplying a huge matrix. The update is still the same:
+      <div class="code-block">r<sub>i</sub> = (1 - &beta;) + &beta; * &Sigma;<sub>j&rarr;i</sub>(r<sub>j</sub> / d<sub>j</sub>)</div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Stage 1 &mdash; Join (Generate Contributions)</div>
+        <div class="card-body">
+          <p><strong>Input tables:</strong> <code>vertices(Id, P)</code> and <code>edges(srcId, dstId, e.P)</code>, where <code>e.P = 1 / d<sub>src</sub></code>.</p>
+          <p>The join attaches source rank and edge weight to each edge. For every edge <code>(u &rarr; v)</code>, Spark forms a triplet equivalent to <code>(u, v, r<sub>u</sub>, 1/d<sub>u</sub>)</code>.</p>
+          <p><strong>Key result:</strong> one row computes one flow value <code>r<sub>u</sub> * (1/d<sub>u</sub>)</code>, i.e., how much rank moves from <code>u</code> to <code>v</code>.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Stage 2 &mdash; GroupBy (Aggregate + Update)</div>
+        <div class="card-body">
+          <p>Spark groups rows by <code>dstId</code> and sums incoming flow:</p>
+          <div class="code-block">&Sigma;<sub>u&rarr;v</sub>(r<sub>u</sub> * 1/d<sub>u</sub>)</div>
+          <p>Then it applies damping/teleportation:</p>
+          <div class="code-block">r<sub>v</sub> = 0.15 + 0.85 * (sum of incoming contributions)</div>
+          <p>This is exactly the usual PageRank update for each destination vertex.</p>
+        </div>
+      </div>
+    </div>
+
+    <table class="cmp">
+      <tr>
+        <th>Spark Step</th>
+        <th>Math Interpretation</th>
+      </tr>
+      <tr>
+        <td><strong>Join</strong></td>
+        <td>Construct all terms of the form <code>r<sub>u</sub> * M<sub>v,u</sub></code> on edges.</td>
+      </tr>
+      <tr>
+        <td><strong>GroupBy + Sum</strong></td>
+        <td>Compute <code>&Sigma;<sub>u</sub>(M<sub>v,u</sub> * r<sub>u</sub>)</code> for each destination vertex <code>v</code>.</td>
+      </tr>
+      <tr>
+        <td><strong>Add 0.15 term</strong></td>
+        <td>Apply teleportation (constant term in this simplified form).</td>
+      </tr>
+    </table>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Tiny Example</div>
+        <div class="card-body">
+          If A has rank 1.0 and two outgoing edges to B and C, then A sends 0.5 to B and 0.5 to C. B and C each collect incoming contributions, then update via <code>r = 0.15 + 0.85 * incoming</code>.
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Subtle but Important</div>
+        <div class="card-body">
+          The constant <code>0.15</code> is a simplified teleport term. More generally, teleportation is <code>(1 - &beta;) * v<sub>i</sub></code>, where <code>v<sub>i</sub></code> is the teleport distribution (uniform or topic-specific).
+        </div>
+      </div>
+    </div>
+
+    <p><strong>GraphFrame</strong> extends GraphX with a DataFrame API, making it accessible from Python and SQL, not just Scala.</p>
+
+    <div class="il"><strong>Edge Cut vs Vertex Cut:</strong> Edge cut puts each vertex on one machine but cuts edges (cross-machine messages per edge). Vertex cut puts each edge on one machine but replicates vertices. For power-law graphs, vertex cut is more efficient because it avoids one super-node becoming a bottleneck.</div>
+
+    <div class="graph-container">
+      <svg class="graph-svg" width="700" height="250" viewBox="0 0 700 250">
+        <!-- Left panel: Edge cut -->
+        <rect x="20" y="18" width="310" height="200" rx="9" fill="#FFFFFF" stroke="#D3D1C7" stroke-width="1"/>
+        <text x="175" y="40" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a1a" font-family="DM Sans, sans-serif">Edge Cut</text>
+
+        <rect x="38" y="56" width="128" height="145" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1"/>
+        <text x="102" y="74" text-anchor="middle" font-size="9" fill="#0F6E56" font-family="DM Sans, sans-serif">Worker A</text>
+        <rect x="184" y="56" width="128" height="145" rx="8" fill="#EEEDFE" stroke="#3C3489" stroke-width="1"/>
+        <text x="248" y="74" text-anchor="middle" font-size="9" fill="#3C3489" font-family="DM Sans, sans-serif">Worker B</text>
+
+        <circle cx="76" cy="122" r="12" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1.5"/>
+        <text x="76" y="126" text-anchor="middle" font-size="9" fill="#0F6E56" font-family="JetBrains Mono, monospace">A</text>
+        <circle cx="128" cy="160" r="12" fill="#FFFFFF" stroke="#0F6E56" stroke-width="1.5"/>
+        <text x="128" y="164" text-anchor="middle" font-size="9" fill="#0F6E56" font-family="JetBrains Mono, monospace">B</text>
+
+        <circle cx="220" cy="120" r="12" fill="#FFFFFF" stroke="#3C3489" stroke-width="1.5"/>
+        <text x="220" y="124" text-anchor="middle" font-size="9" fill="#3C3489" font-family="JetBrains Mono, monospace">C</text>
+        <circle cx="270" cy="160" r="12" fill="#FFFFFF" stroke="#3C3489" stroke-width="1.5"/>
+        <text x="270" y="164" text-anchor="middle" font-size="9" fill="#3C3489" font-family="JetBrains Mono, monospace">D</text>
+
+        <line x1="88" y1="131" x2="116" y2="151" stroke="#0F6E56" stroke-width="1.5"/>
+        <line x1="232" y1="129" x2="258" y2="151" stroke="#3C3489" stroke-width="1.5"/>
+        <line x1="139" y1="153" x2="209" y2="127" stroke="#C74848" stroke-width="2.2" stroke-dasharray="4 3"/>
+        <text x="174" y="147" text-anchor="middle" font-size="8.5" fill="#791F1F" font-family="DM Sans, sans-serif">cross-machine edge</text>
+        <text x="175" y="233" text-anchor="middle" font-size="9" fill="#5F5E5A" font-family="DM Sans, sans-serif">Vertices are not replicated; cut happens on edges.</text>
+
+        <!-- Right panel: Vertex cut -->
+        <rect x="370" y="18" width="310" height="200" rx="9" fill="#FFFFFF" stroke="#D3D1C7" stroke-width="1"/>
+        <text x="525" y="40" text-anchor="middle" font-size="12" font-weight="600" fill="#1a1a1a" font-family="DM Sans, sans-serif">Vertex Cut</text>
+
+        <rect x="388" y="56" width="128" height="145" rx="8" fill="#E6F1FB" stroke="#0C447C" stroke-width="1"/>
+        <text x="452" y="74" text-anchor="middle" font-size="9" fill="#0C447C" font-family="DM Sans, sans-serif">Edge Partition A</text>
+        <rect x="534" y="56" width="128" height="145" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+        <text x="598" y="74" text-anchor="middle" font-size="9" fill="#854F0B" font-family="DM Sans, sans-serif">Edge Partition B</text>
+
+        <circle cx="430" cy="122" r="12" fill="#FFFFFF" stroke="#0C447C" stroke-width="1.5"/>
+        <text x="430" y="126" text-anchor="middle" font-size="9" fill="#0C447C" font-family="JetBrains Mono, monospace">H</text>
+        <circle cx="480" cy="160" r="12" fill="#FFFFFF" stroke="#0C447C" stroke-width="1.5"/>
+        <text x="480" y="164" text-anchor="middle" font-size="9" fill="#0C447C" font-family="JetBrains Mono, monospace">E</text>
+
+        <circle cx="560" cy="122" r="12" fill="#FFFFFF" stroke="#854F0B" stroke-width="1.5"/>
+        <text x="560" y="126" text-anchor="middle" font-size="9" fill="#854F0B" font-family="JetBrains Mono, monospace">H*</text>
+        <circle cx="612" cy="160" r="12" fill="#FFFFFF" stroke="#854F0B" stroke-width="1.5"/>
+        <text x="612" y="164" text-anchor="middle" font-size="9" fill="#854F0B" font-family="JetBrains Mono, monospace">F</text>
+
+        <line x1="442" y1="131" x2="468" y2="151" stroke="#0C447C" stroke-width="1.5"/>
+        <line x1="572" y1="131" x2="600" y2="151" stroke="#854F0B" stroke-width="1.5"/>
+        <line x1="442" y1="122" x2="548" y2="122" stroke="#C74848" stroke-width="2.2" stroke-dasharray="4 3"/>
+        <text x="495" y="112" text-anchor="middle" font-size="8.5" fill="#791F1F" font-family="DM Sans, sans-serif">replicated high-degree vertex</text>
+        <text x="525" y="233" text-anchor="middle" font-size="9" fill="#5F5E5A" font-family="DM Sans, sans-serif">Edges are partitioned; hot vertices are replicated.</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- SECTION 11: Comparison -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">11</span> System Comparison</div>
+
+    <table class="cmp">
+      <tr>
+        <th>System</th>
+        <th>Paradigm</th>
+        <th>Partitioning</th>
+        <th>Language / API</th>
+        <th>Notes</th>
+      </tr>
+      <tr>
+        <td><strong>Pregel</strong> (Google)</td>
+        <td>Think like a vertex, supersteps</td>
+        <td>Edge cut (hash partition vertices)</td>
+        <td>C++ (Vertex subclass)</td>
+        <td>Original BSP model; fault-tolerant via checkpoints</td>
+      </tr>
+      <tr>
+        <td><strong>Giraph</strong> (Facebook)</td>
+        <td>Open-source Pregel clone</td>
+        <td>Edge cut</td>
+        <td>Java</td>
+        <td>Outperforms GraphX on trillion-scale Facebook graph (2016)</td>
+      </tr>
+      <tr>
+        <td><strong>Spark GraphX</strong></td>
+        <td>RDD-based property graph + Pregel API</td>
+        <td>Vertex cut</td>
+        <td>Scala (primary)</td>
+        <td>Achieves parity with specialised systems; integrates with Spark ecosystem</td>
+      </tr>
+      <tr>
+        <td><strong>Spark GraphFrame</strong></td>
+        <td>DataFrame-based graph API</td>
+        <td>Vertex cut</td>
+        <td>Python, Scala, SQL</td>
+        <td>Higher-level API on top of GraphX; supports Spark ML</td>
+      </tr>
+      <tr>
+        <td><strong>Neo4j</strong></td>
+        <td>Graph database + processing</td>
+        <td>Native graph store</td>
+        <td>Cypher Query Language</td>
+        <td>Best for interactive graph queries; not designed for bulk iterative algorithms</td>
+      </tr>
+    </table>
+
+    <div class="il"><strong>Performance finding (2016 Facebook study):</strong> Giraph outperformed GraphX on a trillion-scale social graph. GraphX is more convenient when already in the Spark ecosystem, but specialised BSP systems (Giraph, PowerGraph) can be faster for pure graph workloads.</div>
+  </div>
+
+  <!-- SECTION 12: Exam Q&A -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">12</span> Exam-Style Q&amp;A</div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is PageRank and how does it differ from simply counting in-links?</div>
+      <div class="qa-a">PageRank recursively defines importance: a page's rank is the weighted sum of the ranks of pages linking to it, divided by their out-degrees. This means a link from an important page contributes more than a link from an unimportant page, making it hard to inflate rank by creating dummy pages (which themselves have low importance).</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Write the PageRank flow equation and explain each term.</div>
+      <div class="qa-a">r_j = Σ<sub>i→j</sub> (β · r_i / d_i) + (1-β)/N. β is the damping factor (probability of following a link, typically 0.85). r_i is the current rank of page i. d_i is the out-degree of i. (1-β)/N is the teleportation term: with probability 1-β the surfer jumps uniformly to any of the N pages.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is a spider trap and how do teleports solve it?</div>
+      <div class="qa-a">A spider trap is a set of pages whose out-links all point within the group. A random surfer following links will get stuck inside and never leave, causing all importance to accumulate there. Teleports solve this by giving the surfer a probability (1-β) of jumping to a random page at every step, so no trap can hold the surfer indefinitely.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is a dead end and why does it cause the PageRank matrix to be non-stochastic?</div>
+      <div class="qa-a">A dead end is a page with no out-links. Its column in the matrix M is all zeros (sums to 0, not 1). Importance that flows into the dead end disappears from the system, causing total rank to decay to zero. Fix: treat dead ends as teleporting to every page with probability 1/N.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Explain the Power Iteration algorithm for computing PageRank.</div>
+      <div class="qa-a">Initialise r = [1/N, …, 1/N]. Repeatedly compute r_new = A·r (where A is the Google Matrix) until ||r_new - r||₁ &lt; ε. Convergence is guaranteed because A is a column-stochastic matrix with positive entries (due to teleportation), so it has a unique stationary distribution. In practice ~50 iterations suffice.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Explain the Pregel "think like a vertex" model. What happens in each superstep?</div>
+      <div class="qa-a">The user writes a compute() function for a single vertex. In each superstep, every vertex (conceptually in parallel): (1) reads messages sent to it in the previous superstep; (2) updates its own value; (3) sends messages to neighbours for the next superstep; (4) optionally votes to halt. Computation stops when all vertices are inactive (have voted to halt and received no new messages).</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What is Topic-Specific PageRank and how does it change the teleportation step?</div>
+      <div class="qa-a">Instead of teleporting uniformly to any of the N pages, the surfer teleports only to pages within a curated topic set S (e.g. all sports pages). The teleportation term becomes (1-β)/|S| for pages in S and 0 otherwise. This biases importance toward topic-relevant pages, giving different rankings per topic. One PageRank vector is computed per topic set.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: Compare edge cut vs vertex cut graph partitioning.</div>
+      <div class="qa-a">Edge cut: each vertex lives on one machine; edges crossing partitions require inter-machine messages (used by Pregel/Giraph). Vertex cut: each edge lives on one machine; high-degree vertices are replicated across machines (used by Spark GraphX). Vertex cut handles power-law graphs better because it avoids one machine becoming a bottleneck due to a super-hub vertex.</div>
+    </div>
+
+    <div class="qa-block">
+      <div class="qa-q">Q: What are three problems with standard PageRank and their solutions?</div>
+      <div class="qa-a">(1) Generic popularity — doesn't rank by topic. Solution: Topic-Specific PageRank. (2) Single importance measure — ignores other trust signals. Solution: Hubs-and-Authorities (HITS). (3) Susceptible to link spam — artificial link networks boost rank. Solution: TrustRank.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

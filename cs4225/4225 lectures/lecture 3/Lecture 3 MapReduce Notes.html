@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lecture 3 — MapReduce | CS4225/CS5425</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --teal:        #0F6E56;
+    --teal-light:  #E1F5EE;
+    --teal-mid:    #1D9E75;
+    --purple:      #3C3489;
+    --purple-light:#EEEDFE;
+    --amber:       #854F0B;
+    --amber-light: #FAEEDA;
+    --blue:        #0C447C;
+    --blue-light:  #E6F1FB;
+    --coral:       #712B13;
+    --coral-light: #FAECE7;
+    --red-light:   #FCEBEB;
+    --red:         #791F1F;
+    --green-light: #EAF3DE;
+    --green:       #27500A;
+    --gray:        #444441;
+    --gray-light:  #F1EFE8;
+    --border:      #D3D1C7;
+    --text:        #1a1a1a;
+    --text-muted:  #5F5E5A;
+    --font-body:   'DM Sans', sans-serif;
+    --font-mono:   'JetBrains Mono', monospace;
+  }
+
+  html, body {
+    background: #ffffff;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 11pt;
+    line-height: 1.65;
+  }
+
+  .page {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    padding: 18mm 16mm 18mm 16mm;
+  }
+
+  /* ── Header ── */
+  .lecture-header {
+    border-bottom: 2.5px solid var(--teal-mid);
+    padding-bottom: 10px;
+    margin-bottom: 22px;
+  }
+  .lecture-title {
+    font-size: 20pt;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+  .lecture-sub {
+    font-size: 9pt;
+    color: var(--text-muted);
+    margin-top: 3px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Section headings ── */
+  .section { margin-bottom: 20px; }
+  .section-title {
+    font-size: 12pt;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 9px;
+    padding-bottom: 4px;
+    border-bottom: 0.75px solid var(--border);
+  }
+  .badge {
+    font-size: 8pt;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+  }
+  .bt { background: var(--teal-light);   color: var(--teal); }
+  .bp { background: var(--purple-light); color: var(--purple); }
+  .ba { background: var(--amber-light);  color: var(--amber); }
+  .bb { background: var(--blue-light);   color: var(--blue); }
+  .bc { background: var(--coral-light);  color: var(--coral); }
+
+  /* ── Prose ── */
+  p { font-size: 10.5pt; color: var(--text); line-height: 1.65; margin-bottom: 7px; }
+  code {
+    font-family: var(--font-mono);
+    font-size: 9pt;
+    background: var(--gray-light);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--text);
+  }
+
+  /* ── Grid layouts ── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; margin-bottom: 9px; }
+
+  /* ── Cards ── */
+  .card {
+    border: 0.75px solid var(--border);
+    border-radius: 7px;
+    padding: 9px 11px;
+    background: #fff;
+  }
+  .card-title { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .card-body  { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; }
+
+  /* ── Phase boxes ── */
+  .phase-row { display: flex; align-items: stretch; gap: 0; margin-bottom: 10px; }
+  .phase-box { flex: 1; border-radius: 7px; padding: 10px 10px; text-align: center; }
+  .phase-arrow { display: flex; align-items: center; padding: 0 5px; color: var(--text-muted); font-size: 14pt; }
+  .phase-title { font-size: 10.5pt; font-weight: 600; margin-bottom: 3px; }
+  .phase-desc  { font-size: 8.5pt; line-height: 1.4; }
+  .ph-teal   { background: var(--teal-light);   }
+  .ph-teal .phase-title { color: var(--teal); }
+  .ph-teal .phase-desc  { color: #0F6E56; }
+  .ph-purple { background: var(--purple-light); }
+  .ph-purple .phase-title { color: var(--purple); }
+  .ph-purple .phase-desc  { color: #534AB7; }
+  .ph-amber  { background: var(--amber-light);  }
+  .ph-amber .phase-title  { color: var(--amber); }
+  .ph-amber .phase-desc   { color: #854F0B; }
+
+  /* ── Highlight boxes ── */
+  .hl { border-left: 3px solid var(--teal-mid); background: var(--teal-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: #085041; line-height: 1.55; }
+  .wl { border-left: 3px solid #EF9F27;         background: var(--amber-light); border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--amber); line-height: 1.55; }
+  .il { border-left: 3px solid #378ADD;         background: var(--blue-light);  border-radius: 0 6px 6px 0; padding: 8px 11px; margin-bottom: 9px; font-size: 9.5pt; color: var(--blue); line-height: 1.55; }
+
+  /* ── Code blocks ── */
+  .code-block {
+    background: var(--gray-light);
+    border: 0.75px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-family: var(--font-mono);
+    font-size: 8.5pt;
+    line-height: 1.6;
+    white-space: pre;
+    margin-bottom: 9px;
+    color: var(--text);
+  }
+
+  /* ── Numbered steps ── */
+  .step-item { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 7px; font-size: 9.5pt; color: var(--text); line-height: 1.55; }
+  .step-num { width: 20px; height: 20px; border-radius: 50%; background: #9FE1CB; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 8.5pt; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Q&A ── */
+  .qa-block { margin-bottom: 9px; }
+  .qa-q { font-size: 9.5pt; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .qa-a { font-size: 9.5pt; color: var(--text-muted); line-height: 1.55; padding-left: 10px; border-left: 2px solid var(--border); }
+
+  /* ── Tags ── */
+  .tag { display: inline-block; font-size: 8pt; font-weight: 600; padding: 1px 7px; border-radius: 3px; margin-right: 3px; }
+  .tg  { background: var(--green-light); color: var(--green); }
+  .tr  { background: var(--red-light);   color: var(--red); }
+
+  /* ── Divider ── */
+  .divider { height: 0.75px; background: var(--border); margin: 14px 0; }
+
+  /* ── Lifecycle table ── */
+  .lifecycle { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 9px; }
+  .lifecycle th { background: var(--gray-light); color: var(--text); font-weight: 600; padding: 6px 10px; text-align: left; border: 0.75px solid var(--border); }
+  .lifecycle td { padding: 5px 10px; border: 0.75px solid var(--border); color: var(--text-muted); vertical-align: top; line-height: 1.5; }
+
+  /* ── Print media ── */
+  @media print {
+    html, body { background: #fff; }
+    .page { width: 100%; padding: 15mm 14mm; }
+    .section { page-break-inside: avoid; }
+    .card { page-break-inside: avoid; }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="lecture-header">
+    <div class="lecture-title">Lecture 3 &mdash; MapReduce</div>
+    <div class="lecture-sub">CS4225 / CS5425 &nbsp;&middot;&nbsp; Big Data Systems for Data Science &nbsp;&middot;&nbsp; National University of Singapore</div>
+  </div>
+
+  <!-- 1. What is MapReduce -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">1</span> What is MapReduce?</div>
+    <p>MapReduce is a <strong>programming model and execution framework</strong> for processing massive datasets in parallel across clusters of machines. Introduced by Google (Dean &amp; Ghemawat, OSDI 2004) and popularised by Apache Hadoop.</p>
+    <div class="hl"><strong>Core insight:</strong> Almost all big data tasks share a pattern — iterate over records &rarr; extract something &rarr; shuffle/sort &rarr; aggregate &rarr; output. MapReduce provides a clean abstraction for this via two operations: <strong>Map</strong> and <strong>Reduce</strong>. The key philosophy is <em>separating "what" from "how"</em>: you write the logic; the framework handles scheduling, parallelism, faults, and data movement.</div>
+  </div>
+
+  <!-- 2. Three Phases -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">2</span> The Three Phases</div>
+    <div class="phase-row">
+      <div class="phase-box ph-teal">
+        <div class="phase-title">Map</div>
+        <div class="phase-desc">Read each input record and emit intermediate (key, value) pairs</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-purple">
+        <div class="phase-title">Shuffle &amp; Sort</div>
+        <div class="phase-desc">Group all values by key across all mappers; sort within each group</div>
+      </div>
+      <div class="phase-arrow">&rarr;</div>
+      <div class="phase-box ph-amber">
+        <div class="phase-title">Reduce</div>
+        <div class="phase-desc">For each key, aggregate its list of values and write final output</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">The Programmer's Interface</div>
+      <div class="code-block">map    (k1, v1)       → List(k2, v2)
+reduce (k2, List(v2)) → List(k3, v3)</div>
+      <div class="card-body">You only write these two functions. The execution framework handles everything else: scheduling, sorting, data movement, and fault recovery.</div>
+    </div>
+  </div>
+
+  <!-- 3. Election Example -->
+  <div class="section">
+    <div class="section-title"><span class="badge bt">3</span> Worked Example &mdash; Election Vote Count</div>
+    <p>Goal: count votes for Party A and Party B from multiple polling stations.</p>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Step 1 &middot; Map phase</div>
+        <div class="card-body">Each mapper reads one vote and emits a pair: Party A &rarr; <code>(A, 1)</code>, Party B &rarr; <code>(B, 1)</code>. One map task calls the map function many times — once per record in its 128 MB split.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Step 2 &middot; Shuffle &amp; Sort</div>
+        <div class="card-body">Framework groups all values by key across all mappers:<br><code>A &rarr; [1,1,1,1,1,1]</code><br><code>B &rarr; [1,1,1]</code><br>This happens distributed — data is NOT centralised.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Step 3 &middot; Reduce phase</div>
+        <div class="card-body">Each reducer receives one key and its list of values. Sums them: <code>A: 6</code>, <code>B: 3</code>. The reduce function is called once per distinct intermediate key.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Implementation -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">4</span> MapReduce Implementation &mdash; Step by Step</div>
+    <div class="step-item"><span class="step-num">1</span><div><strong>Submit:</strong> User submits the program and configuration (e.g. number of workers) to the <strong>Master node</strong>. The Master coordinates only — it never processes data.</div></div>
+    <div class="step-item"><span class="step-num">2</span><div><strong>Schedule:</strong> Master assigns map and reduce tasks to available workers.</div></div>
+    <div class="step-item"><span class="step-num">3</span><div><strong>Read &amp; Map:</strong> Input files are split into ~128 MB chunks. Each split = one map task. Workers apply the map function to each (key, value) pair in their split.</div></div>
+    <div class="step-item"><span class="step-num">4</span><div><strong>Local Write (Shuffle starts):</strong> Map workers write intermediate output to their own local disk, partitioned by key (one partition per reducer) and sorted by key within each partition.</div></div>
+    <div class="step-item"><span class="step-num">5</span><div><strong>Remote Read (Shuffle continues):</strong> Each reduce worker fetches its assigned partition from every map worker's local disk over the network.</div></div>
+    <div class="step-item"><span class="step-num">6</span><div><strong>Reduce &amp; Write:</strong> Reducers process keys in sorted order, run the reduce function, and write output to HDFS (distributed file system).</div></div>
+    <div class="il"><strong>Shuffle phase</strong> = steps 4 + 5. It spans both map and reduce workers. There is a <strong>barrier</strong> between map and reduce — all map tasks must finish before reduce tasks begin, though the shuffle can start copying data earlier.</div>
+  </div>
+
+  <!-- 5. Terminology -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">5</span> Critical Terminology &mdash; Don't Confuse These!</div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Worker</div><div class="card-body">A physical or virtual machine in the cluster. One worker handles multiple map tasks sequentially — once done with split 0, it may be reassigned to split 3.</div></div>
+      <div class="card"><div class="card-title">Map Task</div><div class="card-body">A unit of work: processing one 128 MB input split. It is <em>not</em> a machine. Number of map tasks = number of splits.</div></div>
+      <div class="card"><div class="card-title">Map Function</div><div class="card-body">A single call to your user-defined <code>map(k1, v1) → List(k2, v2)</code>. One map task calls this function once per (key, value) pair in the split — potentially thousands of times.</div></div>
+      <div class="card"><div class="card-title">Reduce Task vs. Reduce Function</div><div class="card-body">Reduce tasks: set by the user in configuration. Reduce function: called once per distinct intermediate key. A reduce task handles one or more keys, processed in sorted order.</div></div>
+    </div>
+    <div class="wl"><strong>Exam trap:</strong> "The map function is called once per input split" is <strong>FALSE</strong>. Map function calls = number of input (key, value) pairs. Map tasks = number of splits.</div>
+  </div>
+
+  <!-- 6. Split Size -->
+  <div class="section">
+    <div class="section-title"><span class="badge bp">6</span> Split Size Trade-offs</div>
+    <div class="grid2">
+      <div class="card"><div class="card-title"><span class="tag tr">Too large</span></div><div class="card-body">Fewer splits &rarr; fewer map tasks &rarr; less parallelism. Cluster is underutilised.</div></div>
+      <div class="card"><div class="card-title"><span class="tag tr">Too small</span></div><div class="card-body">Too many map tasks &rarr; Master overwhelmed by scheduling overhead. High coordination cost per task.</div></div>
+    </div>
+    <div class="hl">The standard Hadoop/HDFS split size is <strong>128 MB</strong> — a practical balance between parallelism and scheduling overhead.</div>
+  </div>
+
+  <!-- 7. Partition -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">7</span> Partition Step</div>
+    <p>The <strong>Partitioner</strong> determines which reduce worker handles each intermediate key. Default behaviour:</p>
+    <div class="code-block">reducer_index = hash(key) mod num_reducers</div>
+    <p>Users can implement a <strong>custom partitioner</strong> to handle skew — when some keys have far more values than others, a custom partition distributes load more evenly. The partitioner runs during the local write phase (step 4).</p>
+    <div class="il"><strong>Key fact:</strong> The partitioner assigns keys to <em>reducers</em>, not mappers. "The partitioner determines which keys go to which mappers" is <strong>FALSE</strong>.</div>
+  </div>
+
+  <!-- 8. Combiner -->
+  <div class="section">
+    <div class="section-title"><span class="badge ba">8</span> Combiner Step</div>
+    <p>Writing large volumes of intermediate data to disk and sending it over the network is expensive. A <strong>Combiner</strong> is a "mini-reducer" that pre-aggregates values locally on each map worker <em>before</em> the data is written to disk (during local write, step 4).</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Without combiner</div>
+        <div class="card-body">Mapper 1 emits: <code>A:1, A:1, A:1, B:1, B:1</code> &rarr; 5 records to disk and network.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">With combiner</div>
+        <div class="card-body">Mapper 1 emits: <code>A:3, B:2</code> &rarr; 2 records to disk and network. Reducers still get the correct result: <code>A:[3,1,2] &rarr; 6</code>.</div>
+      </div>
+    </div>
+    <div class="hl">
+      <strong>Correctness rule:</strong> The combiner must be safe to run 0, 1, or many times. It is only valid if the operation is both <strong>associative</strong> <em>and</em> <strong>commutative</strong>.<br><br>
+      <span class="tag tg">&#10003; Safe</span> sum, max, min &nbsp;&nbsp;&nbsp;
+      <span class="tag tr">&#10007; Unsafe</span> mean (average), subtraction<br><br>
+      <em>Why mean fails:</em> <code>mean(mean(1,1), 2) = mean(1,2) = 1.5</code> &ne; <code>mean(1,1,2) = 1.33</code>
+    </div>
+  </div>
+
+  <!-- 9. Word Count -->
+  <div class="section">
+    <div class="section-title"><span class="badge bb">9</span> Word Count &mdash; Three Versions</div>
+    <div class="grid3">
+      <div class="card">
+        <div class="card-title">Version 0 &middot; Naïve</div>
+        <div class="card-body">For each word, emit <code>(word, 1)</code>. Huge intermediate output. High disk and network I/O. Combiners help significantly here by summing locally.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Version 1 &middot; Per-line hash table</div>
+        <div class="card-body">Maintain a hash table per line (per map function call). Emit aggregated counts per line. Fewer emits than V0. Combiners still provide additional benefit.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Version 2 &middot; Per-split hash table</div>
+        <div class="card-body">Hash table spans the entire split (via setup/cleanup hooks). Emit all counts once at the end. Minimum I/O. <strong>Trade-off:</strong> larger memory working set — risk of out-of-memory on diverse text.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. State -->
+  <div class="section">
+    <div class="section-title"><span class="badge bb">10</span> Preserving State &mdash; Setup &amp; Cleanup Hooks</div>
+    <p>The MapReduce API provides lifecycle hooks on each task object, allowing state to be maintained across many calls to the map/reduce function within a single task:</p>
+    <table class="lifecycle">
+      <tr><th>Hook</th><th>When called</th><th>Typical use</th></tr>
+      <tr><td><code>setup()</code></td><td>Once, before all map/reduce calls</td><td>Initialise hash tables, counters, external resources</td></tr>
+      <tr><td><code>map() / reduce()</code></td><td>Once per input pair / intermediate key</td><td>Core user logic</td></tr>
+      <tr><td><code>cleanup()</code></td><td>Once, after all map/reduce calls</td><td>Emit accumulated results, flush buffers, close resources</td></tr>
+    </table>
+    <p>Word Count V2 uses <code>setup()</code> to initialise the hash table and <code>cleanup()</code> to emit all accumulated word counts at once per split.</p>
+  </div>
+
+  <!-- 11. Performance -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">11</span> Performance Guidelines</div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Linear scalability</div><div class="card-body">Aim for algorithms where doubling data (or machines) proportionally scales cost. Avoid super-linear bottlenecks.</div></div>
+      <div class="card"><div class="card-title">Minimise I/O</div><div class="card-body">Prefer sequential over random disk access. Send data in bulk over the network, not in many small chunks.</div></div>
+      <div class="card"><div class="card-title">Reduce working set</div><div class="card-body">The "working set" is actively used memory per task. Large working sets risk out-of-memory errors at scale.</div></div>
+      <div class="card"><div class="card-title">Use combiners wisely</div><div class="card-body">Combiners cut disk and network I/O for free when the operation is associative and commutative.</div></div>
+    </div>
+  </div>
+
+  <!-- 12. Q&A -->
+  <div class="section">
+    <div class="section-title"><span class="badge bc">12</span> Exam-Style Q&amp;A</div>
+    <div class="qa-block">
+      <div class="qa-q">Q: How many times is the map function called?</div>
+      <div class="qa-a">Once per input (key, value) pair — not once per split. Map tasks = number of splits. Map function calls = number of input pairs.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: How many times is the reduce function called?</div>
+      <div class="qa-a">Once per distinct intermediate key. The number of reduce tasks is configured by the user — it is not the same as the number of intermediate keys.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: Does the partitioner determine which mappers process which keys?</div>
+      <div class="qa-a">False. The partitioner determines which reducer handles each key. Mappers simply read their assigned input split.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: Is the shuffle phase run on a single node?</div>
+      <div class="qa-a">False. The shuffle spans all map workers (local write) and reduce workers (remote read). It is inherently distributed.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: Can you always use the reducer as the combiner?</div>
+      <div class="qa-a">Only if the operation is both associative and commutative (e.g. sum, max, min). Never for operations like mean or subtraction.</div>
+    </div>
+    <div class="qa-block">
+      <div class="qa-q">Q: What is the consequence of a split size that is too small?</div>
+      <div class="qa-a">Too many map tasks &rarr; the Master is overwhelmed by scheduling overhead. Too large &rarr; limited parallelism and underutilised cluster.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
